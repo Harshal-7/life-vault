@@ -1,0 +1,34 @@
+# --- Secrets: never commit these (this repo is public) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Personal data: never commit real documents ---
+uploads/
+evals/private/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+.vercel/
+
+# --- OS / editor ---
+.DS_Store
+.idea/
+.vscode/
+*.log
