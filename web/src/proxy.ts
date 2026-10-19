@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { isDemoMode } from "@/lib/demo";
+
 /**
  * Runs before every page request:
  * 1. Keeps the login fresh: if the short-lived access token has expired, Supabase
@@ -9,6 +11,9 @@ import { NextResponse, type NextRequest } from "next/server";
  *    (Pages still check the session themselves; this is only for a smoother UX.)
  */
 export async function proxy(request: NextRequest) {
+  // Demo mode (dev only): no Supabase session to refresh, everyone is the demo user.
+  if (isDemoMode()) return NextResponse.next({ request });
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

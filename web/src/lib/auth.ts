@@ -2,6 +2,7 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
+import { DEMO_USER, isDemoMode } from "@/lib/demo";
 import { createClient } from "@/lib/supabase/server";
 
 export type CurrentUser = { id: string; email: string };
@@ -12,6 +13,8 @@ export type CurrentUser = { id: string; email: string };
  * Reads cookies, so call it only inside a <Suspense> boundary.
  */
 export async function getCurrentUser(): Promise<CurrentUser> {
+  if (isDemoMode()) return { ...DEMO_USER };
+
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims) redirect("/login");
