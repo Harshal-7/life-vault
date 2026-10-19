@@ -5,6 +5,7 @@ import { AskCommandProvider } from "@/components/app/ask-command";
 import { BottomNav } from "@/components/app/bottom-nav";
 import { Sidebar } from "@/components/app/sidebar";
 import { TopBar } from "@/components/app/top-bar";
+import { UploadSheet } from "@/components/upload/upload-sheet";
 
 /**
  * The signed-in app frame. Static, so it paints instantly; only the account menu
@@ -35,6 +36,10 @@ export default function VaultLayout({ children }: LayoutProps<"/vault">) {
         </div>
         <BottomNav />
       </div>
+      {/* Opens on ?upload=1 from any page. Reads the URL, so it needs a boundary. */}
+      <Suspense fallback={null}>
+        <UploadSheet />
+      </Suspense>
     </AskCommandProvider>
   );
 }

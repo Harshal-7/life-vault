@@ -35,6 +35,8 @@ export type DemoDoc = {
   confidence?: Partial<Record<FieldKey, number>>;
   error?: string;
   pages: Block[][];
+  /** For documents that start as "processing": what they become once read. */
+  finished?: { title: string; docType: DocType };
   /** Text passages answers can cite, by name, with the page they're on. */
   passages?: Record<string, { page: number; text: string }>;
 };
@@ -554,16 +556,28 @@ export function buildDemoDocs(): DemoDoc[] {
     },
     {
       id: "doc-processing",
-      title: "Scan from today",
+      title: "New scan",
       docType: "other",
-      accent: "#57534e",
+      vendor: "AquaCity Water",
+      accent: "#0891b2",
       filename: "IMG_4821.jpg",
       source: "camera",
       status: "processing",
       createdDaysAgo: 0,
-      tags: [],
-      fields: {},
-      pages: [],
+      tags: ["water", "utility"],
+      fields: { vendor: "AquaCity Water", amount: 640, docDate: rel(-1), dueDate: rel(14) },
+      confidence: { vendor: 0.93, amount: 0.71, docDate: 0.88, dueDate: 0.64 },
+      finished: { title: "AquaCity water bill", docType: "bill" },
+      pages: [
+        [
+          { t: "title", text: "Water bill" },
+          { t: "row", label: "Connection no.", value: "●●●● 3307" },
+          { t: "row", label: "Bill date", value: formatDate(rel(-1)), field: "docDate" },
+          { t: "row", label: "Consumption", value: "18 kL" },
+          { t: "total", label: "Amount due", value: formatINR(640), field: "amount" },
+          { t: "row", label: "Pay by", value: formatDate(rel(14)), field: "dueDate" },
+        ],
+      ],
     },
     {
       id: "doc-failed",

@@ -43,6 +43,7 @@ type Store = {
 };
 
 const PROCESSING_MS = 5000;
+const SEED_PROCESSING_MS = 15000;
 
 declare global {
   var __lifeVaultMock: Store | undefined;
@@ -60,7 +61,10 @@ export function store(): Store {
 function seed(today: string): Store {
   const entries = new Map<string, Entry>();
   for (const demo of buildDemoDocs()) {
-    entries.set(demo.id, { demo, detail: toDetail(demo) });
+    const entry: Entry = { demo, detail: toDetail(demo) };
+    // Sample documents that start "processing" finish a little after the server starts.
+    if (demo.status === "processing") entry.readyAt = Date.now() + SEED_PROCESSING_MS;
+    entries.set(demo.id, entry);
   }
   return {
     seededOn: today,
@@ -262,9 +266,17 @@ function advanceUploads(s: Store) {
         e.detail.error = "We couldn't read this file. Try a sharper photo or the original PDF.";
       } else {
         e.detail.status = "needs_review";
-        e.detail.fields = { vendor: "Unknown vendor", docDate: todayISO() };
+        if (e.demo.finished) {
+          e.detail.title = e.demo.finished.title;
+          e.detail.docType = e.demo.finished.docType;
+        }
+        if (!e.detail.fields.vendor) {
+          e.detail.fields = { vendor: "Unknown vendor", docDate: todayISO() };
+        }
         e.detail.vendor = e.detail.fields.vendor;
+        e.detail.amount = e.detail.fields.amount;
         e.detail.docDate = e.detail.fields.docDate;
+        e.detail.expiryDate = e.detail.fields.expiryDate ?? e.detail.fields.dueDate;
       }
       e.readyAt = undefined;
     }

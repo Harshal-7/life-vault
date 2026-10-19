@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { AutoRefresh } from "@/components/app/auto-refresh";
 import { PageContainer, PageHeader } from "@/components/app/page";
 import { LibraryView } from "@/components/documents/library-view";
 import { Button } from "@/components/ui/button";
@@ -44,7 +45,14 @@ async function Library({ searchParams }: { searchParams: PageProps<"/vault/docum
   const all = await listDocuments();
   const docs = await listDocuments({ q, type });
 
-  return <LibraryView docs={docs} counts={countByType(all)} total={all.length} />;
+  const processing = all.some((d) => d.status === "processing" || d.status === "uploaded");
+
+  return (
+    <>
+      <AutoRefresh active={processing} />
+      <LibraryView docs={docs} counts={countByType(all)} total={all.length} />
+    </>
+  );
 }
 
 function LibrarySkeleton() {
