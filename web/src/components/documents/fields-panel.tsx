@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { saveFields } from "@/lib/data/actions";
 import type { Deadline, DocFields, DocumentDetail, FieldKey } from "@/lib/data/types";
-import { DEADLINE_LABELS } from "@/lib/doc-meta";
+import { deadlineLabel } from "@/lib/doc-meta";
 import { fieldLabel, fieldsFor, LOW_CONFIDENCE } from "@/lib/field-labels";
 import { daysUntil, formatDate, formatINR, relativeDays } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -224,7 +224,7 @@ export function FieldsPanel({
               return (
                 <li key={d.id} className="flex items-baseline justify-between gap-3 text-sm">
                   <span>
-                    {DEADLINE_LABELS[d.kind]} <span className="text-muted-foreground">{formatDate(d.dueDate)}</span>
+                    {deadlineLabel(d.kind, days)} <span className="text-muted-foreground">{formatDate(d.dueDate)}</span>
                   </span>
                   <span className={cn("tabular shrink-0 text-xs", days < 0 ? "text-destructive" : days <= 31 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground")}>
                     {relativeDays(days)}

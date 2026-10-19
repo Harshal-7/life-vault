@@ -100,3 +100,16 @@ export const DEADLINE_LABELS: Record<DeadlineKind, string> = {
   bill_due: "Payment due",
   id_expiry: "Expires",
 };
+
+const PAST_DEADLINE_LABELS: Record<DeadlineKind, string> = {
+  warranty_end: "Warranty ended",
+  policy_renewal: "Policy expired",
+  agreement_end: "Agreement ended",
+  bill_due: "Payment overdue",
+  id_expiry: "Expired",
+};
+
+/** "Warranty ends" for upcoming dates, "Warranty ended" once the date has passed. */
+export function deadlineLabel(kind: DeadlineKind, days: number): string {
+  return days < 0 ? PAST_DEADLINE_LABELS[kind] : DEADLINE_LABELS[kind];
+}
