@@ -14,11 +14,20 @@ export async function proxy(request: NextRequest) {
   // Demo mode (dev only): no Supabase session to refresh, everyone is the demo user.
   if (isDemoMode()) return NextResponse.next({ request });
 
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) {
+    // Supabase isn't configured yet: public pages still work, the vault stays locked.
+    return request.nextUrl.pathname.startsWith("/vault")
+      ? NextResponse.redirect(new URL("/login", request.url))
+      : NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    url,
+    key,
     {
       cookies: {
         getAll() {
