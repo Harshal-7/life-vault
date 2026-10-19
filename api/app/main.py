@@ -2,10 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.routes import me
 
 settings = get_settings()
 
 app = FastAPI(title="Life Vault API", version="0.1.0")
+app.include_router(me.router)
 
 # Only the web app's origins may call the API from a browser.
 app.add_middleware(
