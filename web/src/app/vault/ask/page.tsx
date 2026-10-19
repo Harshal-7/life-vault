@@ -1,12 +1,55 @@
+import { History } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Suspense } from "react";
+
 import { PageContainer, PageHeader } from "@/components/app/page";
+import { AskExperience } from "@/components/ask/ask-experience";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getCurrentUser } from "@/lib/auth";
+import { listAskHistory } from "@/lib/data";
 
-export const metadata = { title: "Ask" };
+export const metadata: Metadata = { title: "Ask" };
 
-// Placeholder: built in a later UI phase.
 export default function AskPage() {
   return (
-    <PageContainer>
-      <PageHeader title="Ask" description="Coming in a later phase." />
+    <PageContainer className="max-w-3xl">
+      <PageHeader title="Ask" description="Answers come only from your documents, with the source to prove it." />
+      <Suspense fallback={<Skeleton className="h-14 w-full rounded-2xl" />}>
+        <AskExperience
+          recent={
+            <Suspense fallback={null}>
+              <RecentQuestions />
+            </Suspense>
+          }
+        />
+      </Suspense>
     </PageContainer>
+  );
+}
+
+async function RecentQuestions() {
+  await getCurrentUser();
+  const recent = await listAskHistory(6);
+  if (recent.length === 0) return null;
+  return (
+    <section>
+      <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <History className="size-4" /> Recent questions
+      </h2>
+      <ul className="divide-y rounded-xl border bg-card">
+        {recent.map((r) => (
+          <li key={r.id}>
+            <Link
+              href={`/vault/ask?q=${encodeURIComponent(r.question)}`}
+              className="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-muted"
+            >
+              <span className="truncate">{r.question}</span>
+              {r.factValue && <span className="tabular shrink-0 text-xs text-muted-foreground">{r.factValue}</span>}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
