@@ -310,12 +310,4 @@ export function planAnswer(question: string, entries: AskEntry[]): AskPlan {
   return { kind: "not_found", route: "both", suggestion: NOT_FOUND };
 }
 
-/** Example questions shown as chips; all of them have demo answers. */
-export const STARTER_QUESTIONS = [
-  "When does my fridge warranty expire?",
-  "How much was my last electricity bill?",
-  "Does my health insurance cover dental?",
-  "When does my rent agreement end?",
-  "How do I descale the washing machine?",
-  "Is my car insurance still valid?",
-];
+export { STARTER_QUESTIONS } from "@/lib/starter-questions";
