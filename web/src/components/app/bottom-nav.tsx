@@ -3,6 +3,7 @@
 import { MessageCircleQuestion } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -10,12 +11,24 @@ import { isActive, NAV_ITEMS } from "./nav-items";
 
 /** Phone navigation: four tabs with a raised Ask button in the middle. */
 export function BottomNav() {
-  const pathname = usePathname();
+  // The current path is request data on dynamic routes, so the active state streams in.
+  return (
+    <Suspense fallback={<BottomNavView pathname={null} />}>
+      <LiveBottomNav />
+    </Suspense>
+  );
+}
+
+function LiveBottomNav() {
+  return <BottomNavView pathname={usePathname()} />;
+}
+
+function BottomNavView({ pathname }: { pathname: string | null }) {
   const [home, documents, ask, timeline, settings] = NAV_ITEMS;
-  const askActive = isActive(ask!, pathname);
+  const askActive = pathname !== null && isActive(ask!, pathname);
 
   const tab = (item: (typeof NAV_ITEMS)[number]) => {
-    const active = isActive(item, pathname);
+    const active = pathname !== null && isActive(item, pathname);
     return (
       <Link
         key={item.href}
