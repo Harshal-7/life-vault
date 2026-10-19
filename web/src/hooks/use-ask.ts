@@ -83,7 +83,12 @@ export function useAsk() {
       }
       update((a) => (a.status === "done" ? {} : { status: "done" }));
     } catch (err) {
-      if (abort.signal.aborted) return;
+      if (abort.signal.aborted) {
+        // Replaced by a newer question: drop it if nothing had arrived yet.
+        setAnswers((list) => list.filter((a) => a.id !== id || a.text || a.fact || a.notFound));
+        update((a) => (a.status === "done" ? {} : { status: "done" }));
+        return;
+      }
       update({ status: "error", error: err instanceof Error ? err.message : "Something went wrong." });
     }
   }, []);

@@ -9,26 +9,24 @@ import { STARTER_QUESTIONS } from "@/lib/starter-questions";
 
 import { AnswerCard } from "./answer-card";
 import { AskBar } from "./ask-bar";
+import { MicButton } from "./mic-button";
 
 /**
  * The Ask page: question box on top, answers below (newest first).
  * A question in the URL (?q=…, e.g. from Home or ⌘K) is asked on arrival.
- * `voice` renders the mic button and receives the ask function.
  */
-export function AskExperience({
-  recent,
-  voice,
-}: {
-  recent: React.ReactNode;
-  voice?: (ask: (q: string) => void) => React.ReactNode;
-}) {
+export function AskExperience({ recent }: { recent: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const { answers, ask } = useAsk();
   const busy = answers[0]?.status === "thinking" || answers[0]?.status === "streaming";
 
+  // True once a question has been asked on this visit, so the ?q= in the URL isn't asked again.
+  const asked = useRef(false);
+
   const submit = (q: string) => {
+    asked.current = true;
     // Keep the question in the URL so refresh, back and sharing work.
     router.replace(`${pathname}?q=${encodeURIComponent(q)}`, { scroll: false });
     void ask(q);
@@ -36,7 +34,6 @@ export function AskExperience({
 
   // Ask the question from the URL once, when arriving with ?q=. Deferred a tick so
   // React's dev-mode double mount cancels the timer, not an in-flight request.
-  const asked = useRef(false);
   const q = params.get("q");
   useEffect(() => {
     if (!q || asked.current) return;
@@ -55,7 +52,7 @@ export function AskExperience({
 
   return (
     <div className="space-y-6">
-      <AskBar onAsk={submit} busy={busy} autoFocus={!q} size="hero" trailing={voice?.(submit)} />
+      <AskBar onAsk={submit} busy={busy} autoFocus={!q} size="hero" trailing={<MicButton onTranscript={submit} />} />
 
       {answers.length === 0 && !q ? (
         <div className="space-y-8">
