@@ -89,5 +89,6 @@ async def current_user(
     return user
 
 
-# Use in routes: `async def handler(user: CurrentUser): ...`
+# Use in routes: `async def handler(user: CurrentUser, session: DbSession): ...`
 CurrentUser = Annotated[User, Depends(current_user)]
+DbSession = Annotated[AsyncSession, Depends(get_session)]
