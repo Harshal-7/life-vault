@@ -163,7 +163,8 @@ export function DocumentWorkspace({ doc, deadlines }: { doc: DocumentDetail; dea
   );
 }
 
-/** Before page images exist (M1), show the original: photos inline, PDFs in the browser's viewer. */
+/** While page images don't exist yet (still reading, or it failed), show the original:
+ * photos inline, PDFs in the browser's viewer. */
 function OriginalFile({ doc, url }: { doc: DocumentDetail; url: string }) {
   const browserImage = doc.mimeType?.startsWith("image/") && !doc.mimeType.includes("hei");
   return (

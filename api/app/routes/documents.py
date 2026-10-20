@@ -258,6 +258,8 @@ async def update_document(
         doc.title = body.title.strip()
     if body.doc_type is not None:
         doc.doc_type = body.doc_type
+    if body.tags is not None:
+        doc.tags = sorted({t.strip().lower()[:40] for t in body.tags if t.strip()})
     await session.commit()
     await session.refresh(doc)
     return to_out(doc)

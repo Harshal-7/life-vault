@@ -52,16 +52,16 @@ Search the code for `TODO(api)` to find each spot.
 
 | UI function (web) | Replace with (FastAPI) | Milestone |
 |---|---|---|
-| `listDocuments(filter)` | `GET /documents?q=&type=` | M0 step 6 |
-| `getDocument(id)` | `GET /documents/{id}` (with signed page-image URLs) | M1 |
-| `createUpload(req)` | `POST /documents/upload-url` → PUT file → `POST /documents` | M0 step 6 |
-| `retryDocument(id)` | `POST /documents/{id}/retry` | M1 |
-| `saveFields(id, fields, confirm)` | `PATCH /documents/{id}/fields` | M1 |
-| `updateDocument(id, patch)` | `PATCH /documents/{id}` | M1 |
-| `deleteDocument(id)` | `DELETE /documents/{id}` | M0 step 6 |
+| `listDocuments(filter)` | `GET /documents?q=&type=` | ✅ M0 |
+| `getDocument(id)` | `GET /documents/{id}` (with signed page-image URLs) | ✅ M1 |
+| `createUpload(req)` | `POST /documents` → PUT file → `POST /documents/{id}/complete` | ✅ M0 |
+| `retryDocument(id)` | `POST /documents/{id}/retry` | ✅ M0 |
+| `saveFields(id, fields, confirm)` | `PATCH /documents/{id}/fields` | ✅ M1 |
+| `updateDocument(id, patch)` | `PATCH /documents/{id}` (title, type, tags) | ✅ M1 |
+| `deleteDocument(id)` | `DELETE /documents/{id}` (file + page images) | ✅ M0 |
 | `listDeadlines()` / `setReminder()` | `GET /deadlines`, `PATCH /deadlines/{id}` | M3 |
 | `/api/ask` route (SSE) | proxy `POST /ask` (SSE) | M2 |
 | `listAskHistory()` / `sendFeedback()` | `GET /asks`, `POST /asks/{id}/feedback` | M2 |
 | `/api/transcribe` route | proxy `POST /ask/voice` | M5 |
 | `getSettings()` / `saveSettings()` | `GET/PATCH /settings` | M4 |
-| `/demo-pages/[id]/[n]` | page images from Storage (signed URLs) | M1 |
+| `/demo-pages/[id]/[n]` | page images from Storage (signed URLs); demo pages stay for demo mode | ✅ M1 |

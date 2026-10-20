@@ -173,8 +173,12 @@ async def test_rename_and_delete(client_for, fake_storage):
     files, _ = fake_storage
     a = client_for(0)
     doc = await upload(a, files)
-    r = await a.patch(f"/documents/{doc['id']}", json={"title": "October bill", "docType": "bill"})
+    r = await a.patch(
+        f"/documents/{doc['id']}",
+        json={"title": "October bill", "docType": "bill", "tags": ["Power", " power", "home"]},
+    )
     assert r.json()["title"] == "October bill"
+    assert r.json()["tags"] == ["home", "power"]
 
     assert (await a.delete(f"/documents/{doc['id']}")).status_code == 204
     assert (await a.get(f"/documents/{doc['id']}")).status_code == 404

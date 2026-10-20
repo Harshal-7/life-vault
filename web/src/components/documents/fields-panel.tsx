@@ -85,8 +85,11 @@ export function FieldsPanel({
       <section className="rounded-xl border bg-card p-4 text-sm">
         <h2 className="font-medium">Details</h2>
         <p className="mt-1 text-muted-foreground">
-          Company, amounts and dates will be read from this document automatically once the reading pipeline is switched on
-          (milestone M1).
+          {doc.status === "processing" || doc.status === "uploaded"
+            ? "Reading this document. Company, amounts and dates appear here in a few seconds."
+            : doc.status === "failed"
+              ? "We couldn't read details from this file."
+              : "No company, amount or dates were found in this document. You can still search and ask about it."}
         </p>
       </section>
     );

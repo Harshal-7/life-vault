@@ -2,7 +2,7 @@ import "server-only";
 
 import { apiFetch } from "@/lib/api";
 
-import type { DocumentDetail, DocumentSummary, UploadRequest, UploadResult } from "./types";
+import type { DocFields, DocumentDetail, DocumentSummary, UploadRequest, UploadResult } from "./types";
 import type { DocumentFilter } from "./search";
 
 /** The real backend (FastAPI). Used whenever demo mode is off. */
@@ -72,8 +72,19 @@ export async function retryDocument(id: string): Promise<void> {
   await json(`/documents/${encodeURIComponent(id)}/retry`, { method: "POST" });
 }
 
-export async function updateDocument(id: string, patch: { title?: string; docType?: string }): Promise<void> {
+export async function updateDocument(
+  id: string,
+  patch: { title?: string; docType?: string; tags?: string[] },
+): Promise<void> {
   await json(`/documents/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(patch) });
+}
+
+/** Corrected fields (only the keys sent change); `confirm` finishes a review. */
+export async function saveFields(id: string, fields: DocFields, confirm: boolean): Promise<void> {
+  await json(`/documents/${encodeURIComponent(id)}/fields`, {
+    method: "PATCH",
+    body: JSON.stringify({ fields, confirm }),
+  });
 }
 
 export async function deleteDocument(id: string): Promise<void> {

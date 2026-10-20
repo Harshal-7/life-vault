@@ -45,20 +45,22 @@ export async function retryDocument(id: string) {
   refresh();
 }
 
-// TODO(api, M1): PATCH /documents/{id}/fields (extracted fields arrive with the pipeline).
 export async function saveFields(id: string, fields: DocFields, confirm: boolean) {
   await getCurrentUser();
-  if (!isDemoMode()) return { ok: false };
-  const doc = mock.updateFields(id, fields, confirm);
-  refresh();
-  return { ok: Boolean(doc) };
+  try {
+    const ok = isDemoMode() ? Boolean(mock.updateFields(id, fields, confirm)) : (await api.saveFields(id, fields, confirm), true);
+    refresh();
+    return { ok };
+  } catch {
+    return { ok: false };
+  }
 }
 
 export async function updateDocument(id: string, patch: { title?: string; docType?: DocType; tags?: string[] }) {
   await getCurrentUser();
   try {
     if (isDemoMode()) mock.updateDocument(id, patch);
-    else await api.updateDocument(id, { title: patch.title, docType: patch.docType });
+    else await api.updateDocument(id, patch);
     refresh();
     return { ok: true };
   } catch {

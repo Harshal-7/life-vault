@@ -35,7 +35,7 @@ function Thumbnail({ doc }: { doc: DocumentSummary }) {
       ) : busy ? (
         <Loader2 className="size-6 animate-spin" />
       ) : (
-        // No preview image yet (PDF page images arrive in M1): show what kind of file it is.
+        // No page image (e.g. read before page images existed): show what kind of file it is.
         <>
           <FileText className="size-8" strokeWidth={1.5} />
           <span className="text-[11px] font-medium tracking-wide uppercase">
