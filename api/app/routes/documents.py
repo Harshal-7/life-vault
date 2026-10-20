@@ -10,16 +10,29 @@ Every query filters by the signed-in user's id: one user can never see another's
 
 import re
 import uuid
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 
 from app.auth import CurrentUser, DbSession
-from app.db.models import Document
+from app.config import get_settings
+from app.db.models import Document, DocumentPage
+from app.pipeline.fields import FIELDS
 from app.providers import storage
 from app.queue import enqueue_processing
-from app.schemas import DocType, DocumentDetailOut, DocumentOut, DocumentPatch, UploadIn, UploadOut
+from app.schemas import (
+    DocType,
+    DocumentDetailOut,
+    DocumentOut,
+    DocumentPatch,
+    FieldsPatch,
+    PageOut,
+    UploadIn,
+    UploadOut,
+)
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -56,7 +69,7 @@ def safe_filename(filename: str) -> str:
 
 
 def _browser_image(mime: str) -> bool:
-    # HEIC photos can't be shown by most browsers until M1 converts them.
+    # Most browsers can't show HEIC; those get a thumbnail once the page image exists.
     return mime.startswith("image/") and mime not in ("image/heic", "image/heif")
 
 
@@ -70,10 +83,40 @@ def to_out(doc: Document, thumbnail_url: str | None = None) -> DocumentOut:
         original_filename=doc.original_filename,
         size_bytes=doc.size_bytes,
         mime_type=doc.mime_type,
+        page_count=doc.page_count or 0,
         thumbnail_url=thumbnail_url,
+        tags=doc.tags or [],
+        vendor=doc.vendor,
+        amount=float(doc.amount) if doc.amount is not None else None,
+        doc_date=doc.doc_date,
+        expiry_date=doc.expiry_date or doc.due_date,
         created_at=doc.created_at,
         error=doc.error,
     )
+
+
+def field_values(doc: Document) -> dict:
+    """The extracted fields under the UI's names, leaving out empty ones."""
+    out = {}
+    for key, column in FIELDS.values():
+        value = getattr(doc, column)
+        if value is None:
+            continue
+        out[key] = float(value) if isinstance(value, Decimal) else value
+    return out
+
+
+async def _page_keys(session: DbSession, doc_ids: list[uuid.UUID], first_only=False) -> dict:
+    """{document id: [page image keys in order]}"""
+    stmt = select(
+        DocumentPage.document_id, DocumentPage.image_key, DocumentPage.width, DocumentPage.height
+    ).where(DocumentPage.document_id.in_(doc_ids))
+    if first_only:
+        stmt = stmt.where(DocumentPage.page_no == 1)
+    out: dict[uuid.UUID, list] = {}
+    for row in await session.execute(stmt.order_by(DocumentPage.page_no)):
+        out.setdefault(row.document_id, []).append(row)
+    return out
 
 
 async def _owned(session: DbSession, user: CurrentUser, document_id: uuid.UUID) -> Document:
@@ -88,6 +131,18 @@ async def _owned(session: DbSession, user: CurrentUser, document_id: uuid.UUID) 
 
 @router.post("", response_model=UploadOut, status_code=status.HTTP_201_CREATED)
 async def start_upload(body: UploadIn, user: CurrentUser, session: DbSession):
+    limit = get_settings().daily_document_limit
+    added_today = await session.scalar(
+        select(func.count()).where(
+            Document.user_id == user.id,
+            Document.created_at > datetime.now(UTC) - timedelta(days=1),
+        )
+    )
+    if added_today >= limit:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            f"You've added {limit} documents in the last 24 hours. Try again tomorrow.",
+        )
     if body.mime_type not in storage.ALLOWED_MIME_TYPES:
         raise HTTPException(
             status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Only PDFs and photos can be added."
@@ -159,19 +214,39 @@ async def list_documents(
         stmt = stmt.where(or_(Document.title.ilike(like), Document.original_filename.ilike(like)))
     docs = list(await session.scalars(stmt.order_by(Document.created_at.desc()).limit(500)))
 
-    # Photos can be their own thumbnails; PDFs get page images in M1.
-    image_keys = [d.file_key for d in docs if _browser_image(d.mime_type)]
-    thumbs = await storage.signed_urls(image_keys) if image_keys else {}
-    return [to_out(d, thumbs.get(d.file_key)) for d in docs]
+    # Thumbnail: the first page image once it's been read; until then a photo can
+    # stand in for itself.
+    first_pages = await _page_keys(session, [d.id for d in docs], first_only=True)
+    thumb_key = {
+        d.id: first_pages[d.id][0].image_key if d.id in first_pages else d.file_key
+        for d in docs
+        if d.id in first_pages or _browser_image(d.mime_type)
+    }
+    urls = await storage.signed_urls(list(thumb_key.values())) if thumb_key else {}
+    return [to_out(d, urls.get(thumb_key.get(d.id, ""))) for d in docs]
 
 
 @router.get("/{document_id}", response_model=DocumentDetailOut)
 async def get_document(document_id: uuid.UUID, user: CurrentUser, session: DbSession):
     doc = await _owned(session, user, document_id)
-    urls = await storage.signed_urls([doc.file_key])
+    pages = (await _page_keys(session, [doc.id])).get(doc.id, [])
+    urls = await storage.signed_urls([doc.file_key] + [p.image_key for p in pages])
     file_url = urls.get(doc.file_key)
-    base = to_out(doc, file_url if doc.mime_type.startswith("image/") else None)
-    return DocumentDetailOut(**base.model_dump(), file_url=file_url)
+    page_out = [
+        PageOut(url=urls[p.image_key], width=p.width, height=p.height)
+        for p in pages
+        if p.image_key in urls
+    ]
+    photo = file_url if _browser_image(doc.mime_type) else None
+    base = to_out(doc, page_out[0].url if page_out else photo)
+    return DocumentDetailOut(
+        **base.model_dump(),
+        fields=field_values(doc),
+        field_boxes=doc.field_boxes or {},
+        confidence=doc.confidence or {},
+        pages=page_out,
+        file_url=file_url,
+    )
 
 
 @router.patch("/{document_id}", response_model=DocumentOut)
@@ -183,6 +258,29 @@ async def update_document(
         doc.title = body.title.strip()
     if body.doc_type is not None:
         doc.doc_type = body.doc_type
+    await session.commit()
+    await session.refresh(doc)
+    return to_out(doc)
+
+
+@router.patch("/{document_id}/fields", response_model=DocumentOut)
+async def update_fields(
+    document_id: uuid.UUID, body: FieldsPatch, user: CurrentUser, session: DbSession
+):
+    doc = await _owned(session, user, document_id)
+    if doc.status not in ("needs_review", "ready"):
+        raise HTTPException(status.HTTP_409_CONFLICT, "This document is still being read.")
+    sent = body.fields.model_dump(include=body.fields.model_fields_set, by_alias=True)
+    columns = {key: column for key, column in FIELDS.values()}
+    confidence = dict(doc.confidence or {})
+    for key, value in sent.items():
+        if value is None:
+            continue  # empty boxes mean "leave as is", like the UI's draft does
+        setattr(doc, columns[key], Decimal(str(value)) if key == "amount" else value)
+        confidence[key] = 1.0  # a person checked it
+    doc.confidence = confidence
+    if body.confirm and doc.status == "needs_review":
+        doc.status = "ready"
     await session.commit()
     await session.refresh(doc)
     return to_out(doc)
@@ -203,6 +301,8 @@ async def retry_document(document_id: uuid.UUID, user: CurrentUser, session: DbS
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_document(document_id: uuid.UUID, user: CurrentUser, session: DbSession):
     doc = await _owned(session, user, document_id)
-    await storage.delete_objects([doc.file_key])  # file first: never leave an orphaned file behind
+    pages = (await _page_keys(session, [doc.id])).get(doc.id, [])
+    # Files first: never leave an orphaned file behind.
+    await storage.delete_objects([doc.file_key] + [p.image_key for p in pages])
     await session.delete(doc)
     await session.commit()
