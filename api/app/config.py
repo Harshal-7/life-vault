@@ -1,6 +1,9 @@
+import json
 from functools import lru_cache
+from typing import Annotated
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -13,7 +16,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     env: str = "dev"
-    cors_origins: list[str] = ["http://localhost:3001"]
+    # Comma-separated ("http://a, http://b") or a JSON list (["http://a"]).
+    cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:3001"]
 
     supabase_url: str = ""
     supabase_secret_key: str = ""
@@ -22,6 +26,19 @@ class Settings(BaseSettings):
 
     anthropic_api_key: str = ""
     embeddings_api_key: str = ""
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _split_origins(cls, value: object) -> object:
+        if isinstance(value, str):
+            text = value.strip()
+            if text.startswith("["):
+                try:
+                    return json.loads(text)
+                except json.JSONDecodeError:
+                    pass  # e.g. [http://a] after a dotenv loader stripped the quotes
+            return [part.strip() for part in text.strip("[]").split(",") if part.strip()]
+        return value
 
 
 @lru_cache

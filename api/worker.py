@@ -43,3 +43,7 @@ class WorkerSettings:
     queue_name = queue_name()
     max_jobs = 5
     job_timeout = 300
+    # How often an idle worker checks Redis for new jobs. arq's default (0.5 s) would
+    # use up Upstash's free monthly command allowance in days; 5 s costs ~10x less and
+    # documents take seconds to read anyway.
+    poll_delay = 5
