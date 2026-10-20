@@ -2,8 +2,8 @@
 
 | Piece | Where | Cost |
 |---|---|---|
-| Web (Next.js) | Vercel, Hobby plan, functions in Mumbai (`bom1`) | Free |
-| API + worker | Fly.io, one `shared-cpu-1x` 512 MB machine in Mumbai (`bom`), sleeps when idle | Pay-as-you-go; small (see Fly pricing) |
+| Web (Next.js) | Vercel, Hobby plan, functions in Singapore (`sin1`, next to the API) | Free |
+| API + worker | Fly.io, one `shared-cpu-1x` 512 MB machine in Singapore (`sin`; Fly Mumbai is deprecated), sleeps when idle | Pay-as-you-go; small (see Fly pricing) |
 | Database, auth, files | Supabase project **life-vault-prod** (separate from dev) | Free tier |
 | Job queue | Upstash Redis **life-vault-prod** | Free tier |
 

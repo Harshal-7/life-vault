@@ -1,7 +1,7 @@
 # Fly.io config for the Life Vault API (+ worker in the same machine).
 # Deploy: fly deploy   (from the api/ folder)
 app = "life-vault-api"
-primary_region = "bom"   # Mumbai, next to the Supabase project
+primary_region = "sin"   # Singapore: closest Fly region to India (bom is deprecated)
 
 [build]
 

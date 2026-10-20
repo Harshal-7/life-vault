@@ -31,6 +31,7 @@ option; change any of them later. **Cost to change:** S = under an hour, M = hal
 | 22 | Layout | Nav "active" highlight streams in behind `<Suspense>` (Cache Components treats the URL as request data on dynamic routes) | `instant = false` on routes | Keeps every page frame prerendered and instant | — |
 | 23 | Documents | A missing document shows the in-app "Not found" screen with HTTP 200 (status is sent before the document lookup finishes) | Block streaming to return 404 | Faster pages; search engines don't index /vault anyway | S |
 | 24 | Landing | Landing copy makes no usage or user-count claims; the hero shows a static example answer | Screenshots or testimonials | Nothing to claim yet; honest and fast | S |
+| 25 | Hosting | **API + worker on Fly.io in Singapore (`sin`)**, web functions on Vercel `sin1`; Supabase stays in Mumbai | Fly Mumbai (`bom`), AWS Mumbai, move Supabase to Singapore | Fly's Mumbai region is deprecated (no new machines). Singapore is the closest; costs ~50–60 ms per DB query to Mumbai | M |
 
 ## Testing notes
 
