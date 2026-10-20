@@ -25,7 +25,20 @@ class Settings(BaseSettings):
     redis_url: str = ""
 
     anthropic_api_key: str = ""
+    # Voyage AI key: embeddings (search by meaning) and the reranker.
     embeddings_api_key: str = ""
+
+    # Models. Haiku is fast and cheap (routing, reading PDF text); Sonnet reads photos
+    # and writes answers.
+    fast_model: str = "claude-haiku-5-5"
+    smart_model: str = "claude-sonnet-5-5"
+    embeddings_model: str = "voyage-3.5"
+    rerank_model: str = "rerank-2.5-lite"
+
+    # Guards against surprise AI bills on a public site (per user, per day).
+    daily_document_limit: int = 50
+    daily_ask_limit: int = 100
+    max_pages: int = 50
 
     @field_validator("cors_origins", mode="before")
     @classmethod

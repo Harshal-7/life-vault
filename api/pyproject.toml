@@ -5,18 +5,23 @@ description = "FastAPI backend and background worker for Life Vault"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.20.0",
+    "anthropic>=1.15.0",
     "arq>=0.28.0",
     "fastapi>=0.146.0",
     "httpx>=0.28.1",
+    "pillow>=13.0.0",
+    "pillow-heif>=1.8.1",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.16.0",
     "pyjwt[crypto]>=2.15.1",
+    "pypdfium2>=5.14.0",
     "sqlalchemy[asyncio]>=2.1.5",
     "uvicorn[standard]>=0.54.0",
 ]
 
 [dependency-groups]
 dev = [
+    "fpdf2>=2.8.9",
     "httpx2>=2.14.0",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
