@@ -61,7 +61,13 @@ async function AccountSettings() {
       </Section>
 
       <Section icon={Mail} title="Forward documents by email" description="Send or forward bills and receipts to this address and they're added to your vault.">
-        <CopyAddress address={settings.inboundAddress} />
+        {settings.inboundAddress ? (
+          <CopyAddress address={settings.inboundAddress} />
+        ) : (
+          <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+            Your forwarding address arrives with email capture (milestone M4).
+          </p>
+        )}
         <div className="mt-5 space-y-2">
           <p className="text-sm font-medium">Accepted senders</p>
           <p className="text-sm text-muted-foreground">

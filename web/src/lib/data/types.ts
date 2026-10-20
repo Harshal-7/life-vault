@@ -52,6 +52,7 @@ export type DocumentSummary = {
   expiryDate?: string;
   createdAt: string; // ISO datetime
   error?: string;
+  mimeType?: string;
 };
 
 export type DocumentDetail = DocumentSummary & {
@@ -61,6 +62,8 @@ export type DocumentDetail = DocumentSummary & {
   /** Extraction confidence 0–1 per field; low values get flagged in review. */
   confidence: Partial<Record<FieldKey, number>>;
   pages: DocumentPage[];
+  /** Short-lived link to the original file (real backend only). */
+  fileUrl?: string | null;
 };
 
 export type DeadlineKind =
@@ -122,5 +125,5 @@ export type UploadRequest = {
 };
 
 export type UploadResult =
-  | { ok: true; document: DocumentSummary }
+  | { ok: true; document: DocumentSummary; uploadUrl?: string }
   | { ok: false; reason: "duplicate"; existing: DocumentSummary };

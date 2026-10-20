@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
+import { isDemoMode } from "@/lib/demo";
 import { planAnswer } from "@/lib/data/mock/ask";
 import { allDocuments, findEntry, recordAsk } from "@/lib/data/mock/store";
 import type { AskEvent } from "@/lib/data/types";
@@ -16,6 +17,19 @@ export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => ({}))) as { question?: unknown };
   const question = typeof body.question === "string" ? body.question.trim().slice(0, 500) : "";
   if (!question) return Response.json({ error: "Ask a question first." }, { status: 400 });
+
+  if (!isDemoMode()) {
+    // TODO(api, M2): proxy FastAPI POST /ask. Until then, say so instead of guessing.
+    const body =
+      encodeEvent({ type: "route", route: "both" } satisfies AskEvent) +
+      encodeEvent({
+        type: "not_found",
+        suggestion:
+          "Answers from your own documents arrive in the next milestone (M2). Your uploads are stored and will be searchable then.",
+      } satisfies AskEvent) +
+      encodeEvent({ type: "done", askId: "pending-m2" } satisfies AskEvent);
+    return new Response(body, { headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-store" } });
+  }
 
   const entries = allDocuments()
     .filter((d) => d.status === "ready" || d.status === "needs_review")

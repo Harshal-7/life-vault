@@ -80,6 +80,18 @@ export function FieldsPanel({
       router.refresh();
     });
 
+  if (Object.keys(doc.fields).length === 0 && !reviewing) {
+    return (
+      <section className="rounded-xl border bg-card p-4 text-sm">
+        <h2 className="font-medium">Details</h2>
+        <p className="mt-1 text-muted-foreground">
+          Company, amounts and dates will be read from this document automatically once the reading pipeline is switched on
+          (milestone M1).
+        </p>
+      </section>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {reviewing && (

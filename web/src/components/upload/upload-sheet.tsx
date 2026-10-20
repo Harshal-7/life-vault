@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { createUpload } from "@/lib/data/actions";
+import { completeUpload, createUpload } from "@/lib/data/actions";
 import type { DocSource, DocumentSummary } from "@/lib/data/types";
 import { formatBytes } from "@/lib/format";
 import { ACCEPT_ATTR, checkFile } from "@/lib/upload-rules";
@@ -51,6 +51,26 @@ function usePageReady() {
     };
   }, []);
   return ready;
+}
+
+/** PUT the file straight to storage with the one-time URL, reporting progress (0–1). */
+function putFile(url: string, file: File, onProgress: (p: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed (${xhr.status})`)));
+    xhr.onerror = () => reject(new Error("Upload failed. Check your connection."));
+    xhr.send(file);
+  });
+}
+
+/** Some phones send HEIC photos without a MIME type. */
+function mimeFromName(name: string): string {
+  const ext = name.split(".").pop()?.toLowerCase();
+  const map: Record<string, string> = { pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", heic: "image/heic", heif: "image/heif" };
+  return (ext && map[ext]) || "application/octet-stream";
 }
 
 async function sha256(file: File): Promise<string> {
@@ -105,27 +125,37 @@ export function UploadSheet() {
         if (!check.ok) return patch(key, { state: "rejected", message: check.reason });
         try {
           const hash = await sha256(file);
-          patch(key, { state: "uploading", progress: 0.1 });
-          // Demo: simulated progress. With the backend this is the real PUT to storage.
-          for (const p of [0.35, 0.6, 0.85]) {
-            await new Promise((r) => setTimeout(r, 180 + Math.random() * 220));
-            patch(key, { progress: p });
-          }
+          patch(key, { state: "uploading", progress: 0.05 });
           const result = await createUpload({
             filename: file.name,
             sizeBytes: file.size,
-            mimeType: file.type || "application/octet-stream",
+            mimeType: file.type || mimeFromName(file.name),
             sha256: hash,
             source,
           });
-          if (result.ok) {
-            added++;
-            patch(key, { state: "done", progress: 1, doc: result.document });
-          } else {
+          if (!result.ok) {
             patch(key, { state: "duplicate", doc: result.existing, message: `Already in your vault as “${result.existing.title}”.` });
+            return;
           }
-        } catch {
-          patch(key, { state: "error", message: "Upload failed. Check your connection and try again." });
+          if (result.uploadUrl) {
+            // Real backend: the file goes straight to private storage, never through our servers.
+            await putFile(result.uploadUrl, file, (p) => patch(key, { progress: 0.05 + p * 0.9 }));
+            const done = await completeUpload(result.document.id);
+            if (!done.ok) throw new Error(done.error);
+          } else {
+            // Demo mode: simulated progress.
+            for (const p of [0.35, 0.6, 0.85]) {
+              await new Promise((r) => setTimeout(r, 180 + Math.random() * 220));
+              patch(key, { progress: p });
+            }
+          }
+          added++;
+          patch(key, { state: "done", progress: 1, doc: result.document });
+        } catch (err) {
+          patch(key, {
+            state: "error",
+            message: err instanceof Error && err.message ? err.message : "Upload failed. Check your connection and try again.",
+          });
         }
       }),
     );

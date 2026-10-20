@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
+import { isDemoMode } from "@/lib/demo";
 import { STARTER_QUESTIONS } from "@/lib/starter-questions";
 
 const MAX_AUDIO_BYTES = 5 * 1024 * 1024; // ~30 s of compressed speech is far below this
@@ -17,6 +18,9 @@ declare global {
  */
 export async function POST(request: NextRequest) {
   await getCurrentUser();
+  if (!isDemoMode()) {
+    return Response.json({ error: "Voice questions arrive in milestone M5. You can type your question for now." }, { status: 501 });
+  }
   const form = await request.formData().catch(() => null);
   const audio = form?.get("audio");
   if (!(audio instanceof Blob) || audio.size === 0) {

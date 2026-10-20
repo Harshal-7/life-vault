@@ -112,6 +112,8 @@ export function DocumentWorkspace({ doc, deadlines }: { doc: DocumentDetail; dea
         <div className="min-w-0">
           {doc.pages.length > 0 ? (
             <PageViewer pages={doc.pages} page={page} onPageChange={setPage} highlight={highlight} title={doc.title} />
+          ) : doc.fileUrl ? (
+            <OriginalFile doc={doc} url={doc.fileUrl} />
           ) : (
             <div className="flex aspect-[4/3] items-center justify-center rounded-xl border bg-muted/40 text-sm text-muted-foreground">
               No preview available
@@ -156,6 +158,28 @@ export function DocumentWorkspace({ doc, deadlines }: { doc: DocumentDetail; dea
             )}
           </section>
         </aside>
+      </div>
+    </div>
+  );
+}
+
+/** Before page images exist (M1), show the original: photos inline, PDFs in the browser's viewer. */
+function OriginalFile({ doc, url }: { doc: DocumentDetail; url: string }) {
+  const browserImage = doc.mimeType?.startsWith("image/") && !doc.mimeType.includes("hei");
+  return (
+    <div className="overflow-hidden rounded-xl border bg-muted/40">
+      {browserImage ? (
+        // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL, not optimisable
+        <img src={url} alt={doc.title} className="mx-auto max-h-[70dvh] w-auto object-contain" />
+      ) : doc.mimeType === "application/pdf" ? (
+        <iframe src={url} title={doc.title} className="h-[70dvh] w-full bg-white" />
+      ) : (
+        <p className="p-8 text-center text-sm text-muted-foreground">Preview isn&apos;t available for this file type yet.</p>
+      )}
+      <div className="flex justify-end border-t bg-background px-3 py-2">
+        <a href={url} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+          Open original
+        </a>
       </div>
     </div>
   );
