@@ -1,4 +1,4 @@
-import { Loader2, TriangleAlert } from "lucide-react";
+import { FileText, Loader2, TriangleAlert } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -27,12 +27,21 @@ function Thumbnail({ doc }: { doc: DocumentSummary }) {
       />
     );
   }
+  const busy = doc.status === "processing" || doc.status === "uploaded";
   return (
-    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+    <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
       {doc.status === "failed" ? (
         <TriangleAlert className="size-6 text-status-failed" />
-      ) : (
+      ) : busy ? (
         <Loader2 className="size-6 animate-spin" />
+      ) : (
+        // No preview image yet (PDF page images arrive in M1): show what kind of file it is.
+        <>
+          <FileText className="size-8" strokeWidth={1.5} />
+          <span className="text-[11px] font-medium tracking-wide uppercase">
+            {doc.mimeType === "application/pdf" ? "PDF" : (doc.mimeType?.split("/")[1] ?? "File")}
+          </span>
+        </>
       )}
     </div>
   );

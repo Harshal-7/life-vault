@@ -27,10 +27,10 @@ evals/   evaluation questions and synthetic sample documents
 cd api
 cp ../.env.example .env   # then fill in your dev keys
 uv sync
-uv run uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload --port 8001
 ```
 
-Health check: <http://localhost:8000/health>
+Health check: <http://localhost:8001/health>
 
 ## Screens (UI built on demo data)
 
