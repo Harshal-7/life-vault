@@ -83,6 +83,27 @@ async def object_size(key: str) -> int | None:
     return int(size) if size is not None else 0
 
 
+async def download(key: str) -> bytes:
+    """The file's bytes (the worker reads uploads with this)."""
+    async with httpx.AsyncClient(base_url=_base(), headers=_headers(), timeout=60) as c:
+        r = await c.get(f"/object/{BUCKET}/{_path(key)}")
+    if r.status_code != 200:
+        raise StorageError(f"download failed: {r.status_code} {r.text[:200]}")
+    return r.content
+
+
+async def upload(key: str, data: bytes, content_type: str) -> None:
+    """Write a file we made ourselves (page images). Overwrites, so retries are safe."""
+    async with _client() as c:
+        r = await c.post(
+            f"/object/{BUCKET}/{_path(key)}",
+            content=data,
+            headers={"content-type": content_type, "x-upsert": "true"},
+        )
+    if r.status_code not in (200, 201):
+        raise StorageError(f"upload failed: {r.status_code} {r.text[:200]}")
+
+
 async def signed_urls(keys: list[str], expires_in: int = 600) -> dict[str, str]:
     """Short-lived view URLs for many files in one request."""
     if not keys:
