@@ -1,0 +1,33 @@
+# Fly.io config for the Life Vault API (+ worker in the same machine).
+# Deploy: fly deploy   (from the api/ folder)
+app = "life-vault-api"
+primary_region = "bom"   # Mumbai, next to the Supabase project
+
+[build]
+
+[deploy]
+  # Apply database migrations before each new version goes live.
+  release_command = "alembic upgrade head"
+
+[env]
+  ENV = "prod"
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Sleep when nobody is using it, wake on the next request: keeps the bill near zero.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "15s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

@@ -13,6 +13,12 @@ log = logging.getLogger(__name__)
 _pool: ArqRedis | None = None
 
 
+def queue_name() -> str:
+    """Separate queue per environment, so a dev worker can never pick up prod jobs
+    (or the other way round) even if they share a Redis database."""
+    return f"life-vault:{get_settings().env}:queue"
+
+
 def redis_settings() -> RedisSettings:
     return RedisSettings.from_dsn(get_settings().redis_url)
 
@@ -30,7 +36,12 @@ async def enqueue_processing(document_id: uuid.UUID) -> bool:
     if pool is None:
         log.warning("REDIS_URL not set: document %s was not queued", document_id)
         return False
-    await pool.enqueue_job("process_document", str(document_id), _job_id=f"process:{document_id}")
+    await pool.enqueue_job(
+        "process_document",
+        str(document_id),
+        _job_id=f"process:{document_id}",
+        _queue_name=queue_name(),
+    )
     return True
 
 

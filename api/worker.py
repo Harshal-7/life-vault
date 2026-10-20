@@ -14,7 +14,7 @@ from sqlalchemy import select
 
 from app.db.models import Document
 from app.db.session import SessionLocal
-from app.queue import redis_settings
+from app.queue import queue_name, redis_settings
 
 log = logging.getLogger("worker")
 READ_FAILED = "We couldn't read this file. Try a sharper photo or the original PDF."
@@ -40,5 +40,6 @@ async def process_document(ctx: dict, document_id: str) -> str:
 class WorkerSettings:
     functions = [process_document]
     redis_settings = redis_settings()
+    queue_name = queue_name()
     max_jobs = 5
     job_timeout = 300
