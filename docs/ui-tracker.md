@@ -32,6 +32,14 @@ option; change any of them later. **Cost to change:** S = under an hour, M = hal
 | 23 | Documents | A missing document shows the in-app "Not found" screen with HTTP 200 (status is sent before the document lookup finishes) | Block streaming to return 404 | Faster pages; search engines don't index /vault anyway | S |
 | 24 | Landing | Landing copy makes no usage or user-count claims; the hero shows a static example answer | Screenshots or testimonials | Nothing to claim yet; honest and fast | S |
 | 25 | Hosting | **API + worker on Fly.io in Singapore (`sin`)**, web functions on Vercel `sin1`; Supabase stays in Mumbai | Fly Mumbai (`bom`), AWS Mumbai, move Supabase to Singapore | Fly's Mumbai region is deprecated (no new machines). Singapore is the closest; costs ~50–60 ms per DB query to Mumbai | M |
+| 26 | AI | **Voyage AI** `voyage-3.5` embeddings (1024 dims) + `rerank-2.5-lite` reranker | OpenAI embeddings, Cohere rerank | One account for both; 200M free tokens; multilingual (Hindi + English) | M (re-embed all chunks) |
+| 27 | Ingestion | **pypdfium2** reads PDF text and renders page images | PyMuPDF | Fast and permissively licensed (PyMuPDF is AGPL) | M |
+| 28 | Ingestion | Page images are **WebP ~1200 px wide**; documents over **50 pages** are refused | PNG, full size, no cap | Sharp on phones, small files, keeps the 512 MB Fly machine safe | S |
+| 29 | Review | A document goes to **needs_review** only when a field's confidence is < 0.8 or a key field is missing; otherwise straight to ready | Always ask for review | Less busywork; the fields panel still flags low-confidence values | S |
+| 30 | Search | Keyword search uses the Postgres **`simple`** text config | `english` | English stemming mangles Hindi/Hinglish words | S |
+| 31 | Ask | **Single-question** asks (no follow-up memory) in M2 | Conversation memory | Simpler; follow-ups later | M |
+| 32 | Limits | Per user per day: **50 documents, 100 questions** | No limits | Public site + paid AI calls: no surprise bills | S |
+| 33 | Email | Auth emails sent through **Brevo SMTP (free, 300/day) with a Gmail sender** | Own domain + Brevo, Gmail SMTP | Free and no domain needed; may hit spam until we add a domain | S (swap sender) |
 
 ## Testing notes
 

@@ -1,0 +1,19 @@
+<!--
+  Supabase → Authentication → Emails → Templates → "Magic Link".
+  Subject: Your Life Vault sign-in link
+  Paste everything below this comment into the message body.
+  {{ .ConfirmationURL }} is filled in by Supabase.
+-->
+<div style="font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1c1917;">
+  <p style="font-size: 18px; font-weight: 600; margin: 0 0 16px;">Life Vault</p>
+  <p style="margin: 0 0 20px; line-height: 1.5;">Tap the button to sign in. The link works once and expires in 1 hour.</p>
+  <p style="margin: 0 0 24px;">
+    <a href="{{ .ConfirmationURL }}"
+       style="display: inline-block; background: #0f766e; color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-weight: 600;">
+      Sign in to Life Vault
+    </a>
+  </p>
+  <p style="margin: 0; font-size: 13px; color: #78716c; line-height: 1.5;">
+    Didn't ask for this? You can ignore this email. Nobody can sign in without this link.
+  </p>
+</div>
