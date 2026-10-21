@@ -51,7 +51,10 @@ export function useAsk() {
         body: JSON.stringify({ question }),
         signal: abort.signal,
       });
-      if (!res.ok || !res.body) throw new Error(`Ask failed (${res.status})`);
+      if (!res.ok || !res.body) {
+        const body = (await res.json().catch(() => ({}))) as { error?: unknown };
+        throw new Error(typeof body.error === "string" ? body.error : `Ask failed (${res.status})`);
+      }
 
       const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
       const parse = createParser<AskEvent>();
@@ -75,13 +78,17 @@ export function useAsk() {
             case "not_found":
               update({ notFound: e.suggestion });
               break;
+            case "error":
+              update({ status: "error", error: e.message });
+              break;
             case "done":
-              update({ askId: e.askId, status: "done" });
+              // After an error the answer stays marked as failed (with Try again).
+              update((a) => ({ askId: e.askId, status: a.status === "error" ? "error" : "done" }));
               break;
           }
         }
       }
-      update((a) => (a.status === "done" ? {} : { status: "done" }));
+      update((a) => (a.status === "done" || a.status === "error" ? {} : { status: "done" }));
     } catch (err) {
       if (abort.signal.aborted) {
         // Replaced by a newer question: drop it if nothing had arrived yet.

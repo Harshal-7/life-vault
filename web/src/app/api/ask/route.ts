@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 
+import { apiFetch } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
 import { isDemoMode } from "@/lib/demo";
 import { planAnswer } from "@/lib/data/mock/ask";
@@ -9,8 +10,8 @@ import { encodeEvent } from "@/lib/sse";
 
 /**
  * POST { question } → a stream of AskEvents (Server-Sent Events).
- * Demo mode answers from keyword rules with realistic pacing.
- * TODO(api): proxy FastAPI `POST /ask` (SSE) here, passing the user's access token.
+ * Normally this forwards to FastAPI `POST /ask` with the user's access token and pipes
+ * its stream straight through. Demo mode answers from keyword rules with realistic pacing.
  */
 export async function POST(request: NextRequest) {
   await getCurrentUser();
@@ -19,16 +20,30 @@ export async function POST(request: NextRequest) {
   if (!question) return Response.json({ error: "Ask a question first." }, { status: 400 });
 
   if (!isDemoMode()) {
-    // TODO(api, M2): proxy FastAPI POST /ask. Until then, say so instead of guessing.
-    const body =
-      encodeEvent({ type: "route", route: "both" } satisfies AskEvent) +
-      encodeEvent({
-        type: "not_found",
-        suggestion:
-          "Answers from your own documents arrive in the next milestone (M2). Your uploads are stored and will be searchable then.",
-      } satisfies AskEvent) +
-      encodeEvent({ type: "done", askId: "pending-m2" } satisfies AskEvent);
-    return new Response(body, { headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-store" } });
+    // A newer question (or leaving the page) aborts this request, which cancels FastAPI's work too.
+    const res = await apiFetch("/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+      signal: request.signal,
+    });
+    if (!res.ok || !res.body) {
+      const detail = await res
+        .json()
+        .then((b: { detail?: unknown }) => b.detail)
+        .catch(() => null);
+      return Response.json(
+        { error: typeof detail === "string" ? detail : "Couldn't reach your vault. Try again." },
+        { status: res.status === 200 ? 502 : res.status },
+      );
+    }
+    return new Response(res.body, {
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-store, no-transform",
+        Connection: "keep-alive",
+      },
+    });
   }
 
   const entries = allDocuments()

@@ -41,10 +41,11 @@ export async function listDeadlines(): Promise<Deadline[]> {
   return isDemoMode() ? mock.deadlines() : [];
 }
 
-// TODO(api, M2): GET /asks?limit=
 export async function listAskHistory(limit = 8): Promise<AskHistoryItem[]> {
   await connection();
-  return isDemoMode() ? mock.askHistory().slice(0, limit) : [];
+  if (isDemoMode()) return mock.askHistory().slice(0, limit);
+  // Recent questions are a nice-to-have: never break the page over them.
+  return api.listAskHistory(limit).catch(() => []);
 }
 
 // TODO(api, M4): GET /settings (forwarding address, senders, reminder days).

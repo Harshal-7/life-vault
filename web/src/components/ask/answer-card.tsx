@@ -9,6 +9,7 @@ import { DocTypeTile } from "@/components/documents/doc-bits";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Answer } from "@/hooks/use-ask";
+import { splitCitations } from "@/lib/citations";
 import { sendFeedback } from "@/lib/data/actions";
 import type { Citation } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
@@ -84,7 +85,7 @@ export function AnswerCard({ answer, onRetry }: { answer: Answer; onRetry: (q: s
 
         {answer.text && (
           <p className="leading-relaxed" aria-live="polite">
-            {answer.text}
+            <AnswerText text={answer.text} citations={answer.citations} />
             {answer.status === "streaming" && <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-primary align-middle" />}
           </p>
         )}
@@ -97,7 +98,7 @@ export function AnswerCard({ answer, onRetry }: { answer: Answer; onRetry: (q: s
             <ul className="grid gap-2 sm:grid-cols-2">
               {answer.citations.map((c, i) => (
                 <li key={`${c.documentId}-${i}`}>
-                  <SourceCard citation={c} />
+                  <SourceCard citation={c} n={i + 1} />
                 </li>
               ))}
             </ul>
@@ -131,7 +132,26 @@ export function AnswerCard({ answer, onRetry }: { answer: Answer; onRetry: (q: s
   );
 }
 
-function SourceCard({ citation: c }: { citation: Citation }) {
+/** The answer with each "[n]" turned into a small link to source n, opened at the
+ * cited page with the passage highlighted. */
+function AnswerText({ text, citations }: { text: string; citations: Citation[] }) {
+  return splitCitations(text, citations.length).map((part, i) =>
+    part.kind === "text" ? (
+      <span key={i}>{part.text}</span>
+    ) : (
+      <Link
+        key={i}
+        href={citationHref(citations[part.n - 1])}
+        className="tabular mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded bg-accent px-1 align-super text-[10px] font-semibold text-accent-foreground no-underline hover:bg-primary hover:text-primary-foreground"
+        aria-label={`Source ${part.n}: ${citations[part.n - 1].title}, page ${citations[part.n - 1].page}`}
+      >
+        {part.n}
+      </Link>
+    ),
+  );
+}
+
+function SourceCard({ citation: c, n }: { citation: Citation; n: number }) {
   return (
     <Link
       href={citationHref(c)}
@@ -154,7 +174,10 @@ function SourceCard({ citation: c }: { citation: Citation }) {
         )}
       </span>
       <span className="min-w-0 flex-1 py-0.5">
-        <span className="block truncate text-sm font-medium">{c.title}</span>
+        <span className="block truncate text-sm font-medium">
+          <span className="tabular mr-1.5 text-xs text-muted-foreground">{n}</span>
+          {c.title}
+        </span>
         <span className="line-clamp-2 text-xs text-muted-foreground">{c.snippet}</span>
         <span className="mt-0.5 block text-[11px] text-muted-foreground">Page {c.page}</span>
       </span>

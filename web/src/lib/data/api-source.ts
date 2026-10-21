@@ -2,7 +2,14 @@ import "server-only";
 
 import { apiFetch } from "@/lib/api";
 
-import type { DocFields, DocumentDetail, DocumentSummary, UploadRequest, UploadResult } from "./types";
+import type {
+  AskHistoryItem,
+  DocFields,
+  DocumentDetail,
+  DocumentSummary,
+  UploadRequest,
+  UploadResult,
+} from "./types";
 import type { DocumentFilter } from "./search";
 
 /** The real backend (FastAPI). Used whenever demo mode is off. */
@@ -89,4 +96,12 @@ export async function saveFields(id: string, fields: DocFields, confirm: boolean
 
 export async function deleteDocument(id: string): Promise<void> {
   await json(`/documents/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export async function listAskHistory(limit: number): Promise<AskHistoryItem[]> {
+  return json<AskHistoryItem[]>(`/asks?limit=${limit}`);
+}
+
+export async function sendFeedback(askId: string, value: "up" | "down"): Promise<void> {
+  await json(`/asks/${encodeURIComponent(askId)}/feedback`, { method: "POST", body: JSON.stringify({ value }) });
 }

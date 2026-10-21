@@ -100,6 +100,7 @@ export type AskEvent =
   | { type: "sources"; citations: Citation[] }
   | { type: "delta"; text: string }
   | { type: "not_found"; suggestion: string }
+  | { type: "error"; message: string } // the answer broke off; `done` still follows
   | { type: "done"; askId: string };
 
 export type AskHistoryItem = {

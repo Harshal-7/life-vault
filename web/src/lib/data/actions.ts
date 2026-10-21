@@ -86,10 +86,10 @@ export async function setReminder(deadlineId: string, on: boolean) {
   refresh();
 }
 
-// TODO(api, M2): POST /asks/{id}/feedback
 export async function sendFeedback(askId: string, value: "up" | "down") {
   await getCurrentUser();
   if (isDemoMode()) mock.setFeedback(askId, value);
+  else await api.sendFeedback(askId, value).catch(() => undefined); // a lost vote isn't worth an error
 }
 
 // TODO(api, M4): PATCH /settings. Until then changes only last in demo mode.
