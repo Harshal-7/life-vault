@@ -20,7 +20,7 @@ export function AskExperience({ recent, voice }: { recent: React.ReactNode; voic
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const { answers, ask } = useAsk();
+  const { answers, ask, stop } = useAsk();
   const busy = answers[0]?.status === "thinking" || answers[0]?.status === "streaming";
 
   // The last question asked on this visit. A ?q= that differs from it (⌘K while already
@@ -46,6 +46,14 @@ export function AskExperience({ recent, voice }: { recent: React.ReactNode; voic
     return () => clearTimeout(t);
   }, [q, ask]);
 
+  // A new question appears at the top: bring it into view if the page was scrolled down.
+  const newest = answers[0]?.id;
+  useEffect(() => {
+    if (!newest) return;
+    const card = document.getElementById(`answer-${newest}`);
+    if (card && card.getBoundingClientRect().top < 0) card.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [newest]);
+
   // Refresh the "recent questions" list after each answer finishes.
   const lastDone = answers[0]?.status === "done" ? answers[0].id : null;
   useEffect(() => {
@@ -56,7 +64,7 @@ export function AskExperience({ recent, voice }: { recent: React.ReactNode; voic
     <div className="space-y-6">
       {/* With answers on wide screens, lines up with the answers column. */}
       <div className={cn(answers.length > 0 && "xl:max-w-[calc(100%-19rem)]")}>
-        <AskBar onAsk={submit} busy={busy} autoFocus={!q} size="hero" trailing={voice ? <MicButton onTranscript={submit} /> : undefined} />
+        <AskBar onAsk={submit} onStop={stop} busy={busy} autoFocus={!q} size="hero" trailing={voice ? <MicButton onTranscript={submit} /> : undefined} />
       </div>
 
       {answers.length === 0 && !q ? (

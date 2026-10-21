@@ -3,7 +3,7 @@
 import { BellRing, CircleAlert, Crosshair, Loader2, Pencil, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,15 @@ export function FieldsPanel({
   const reviewing = doc.status === "needs_review";
   const [editing, setEditing] = useState(reviewing);
   const [draft, setDraft] = useState<Draft>(() => toDraft(doc.fields));
+
+  // Warn before leaving the page with unsaved edits.
+  const dirty = editing && JSON.stringify(draft) !== JSON.stringify(toDraft(doc.fields));
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
   const [pending, startTransition] = useTransition();
 
   const unsure = (key: FieldKey) => (doc.confidence[key] ?? 1) < LOW_CONFIDENCE;

@@ -21,3 +21,25 @@ export function splitCitations(text: string, sourceCount: number): AnswerPart[] 
   if (last < text.length) parts.push({ kind: "text", text: text.slice(last) });
   return parts;
 }
+
+/**
+ * Answers sometimes cite the same page twice (the exact field, and the passage around
+ * it). Show each document page once: `sources` keeps the first of each (the more
+ * precise highlight) and `toSource[i]` maps citation i to its place in `sources`, so
+ * "[2]" in the text still points at the right card.
+ */
+export function dedupeCitations<C extends { documentId: string; page: number }>(
+  citations: C[],
+): { sources: C[]; toSource: number[] } {
+  const sources: C[] = [];
+  const seen = new Map<string, number>();
+  const toSource = citations.map((c) => {
+    const key = `${c.documentId}:${c.page}`;
+    if (!seen.has(key)) {
+      seen.set(key, sources.length);
+      sources.push(c);
+    }
+    return seen.get(key)!;
+  });
+  return { sources, toSource };
+}

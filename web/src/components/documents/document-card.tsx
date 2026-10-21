@@ -1,9 +1,9 @@
 import { FileText, Loader2, TriangleAlert } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
 import type { DocumentSummary } from "@/lib/data/types";
 import { keyLine } from "@/lib/doc-display";
+import { SignedImage } from "@/components/app/signed-image";
 import { cn } from "@/lib/utils";
 
 import { DocTypeTile, StatusBadge } from "./doc-bits";
@@ -17,7 +17,7 @@ const toneClass = {
 function Thumbnail({ doc }: { doc: DocumentSummary }) {
   if (doc.thumbnailUrl) {
     return (
-      <Image
+      <SignedImage
         src={doc.thumbnailUrl}
         alt=""
         width={600}

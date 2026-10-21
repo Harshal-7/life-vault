@@ -1,17 +1,18 @@
 "use client";
 
 import { FileSearch, RotateCw, Sparkles, ThumbsDown, ThumbsUp, Upload } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { DocTypeTile } from "@/components/documents/doc-bits";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Answer } from "@/hooks/use-ask";
-import { splitCitations } from "@/lib/citations";
+import { dedupeCitations, splitCitations } from "@/lib/citations";
 import { sendFeedback } from "@/lib/data/actions";
 import type { Citation } from "@/lib/data/types";
+import { SignedImage } from "@/components/app/signed-image";
 import { cn } from "@/lib/utils";
 
 const THINKING_LABEL = {
@@ -29,10 +30,33 @@ export function citationHref(c: Citation): string {
 
 export function AnswerCard({ answer, onRetry }: { answer: Answer; onRetry: (q: string) => void }) {
   const [vote, setVote] = useState<"up" | "down" | null>(null);
+  const [voting, startVote] = useTransition();
   const waiting = answer.status === "thinking";
+  const { sources, toSource } = dedupeCitations(answer.citations);
+
+  const castVote = (v: "up" | "down") => {
+    const before = vote;
+    setVote(v);
+    startVote(async () => {
+      try {
+        await sendFeedback(answer.askId!, v);
+      } catch {
+        setVote(before);
+        toast.error("Couldn't save that. Try again.");
+      }
+    });
+  };
 
   return (
-    <article className="overflow-hidden rounded-2xl border bg-card" aria-busy={answer.status !== "done" && answer.status !== "error"}>
+    <article
+      id={`answer-${answer.id}`}
+      className="scroll-mt-20 overflow-hidden rounded-2xl border bg-card"
+      aria-busy={answer.status !== "done" && answer.status !== "error"}
+    >
+      {/* One announcement when the answer is complete, instead of every streamed word. */}
+      <p className="sr-only" role="status">
+        {answer.status === "done" && !answer.stopped ? "Answer ready." : ""}
+      </p>
       <header className="flex items-start gap-2 border-b bg-muted/40 px-4 py-3 text-sm">
         <span className="mt-0.5 font-medium text-muted-foreground">Q</span>
         <p className="font-medium">{answer.question}</p>
@@ -51,7 +75,7 @@ export function AnswerCard({ answer, onRetry }: { answer: Answer; onRetry: (q: s
         )}
 
         {answer.status === "error" && (
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3" role="alert">
             <p className="text-sm text-destructive">Couldn&apos;t get an answer. {answer.error}</p>
             <Button variant="outline" size="sm" onClick={() => onRetry(answer.question)}>
               <RotateCw /> Try again
@@ -83,20 +107,24 @@ export function AnswerCard({ answer, onRetry }: { answer: Answer; onRetry: (q: s
           </div>
         )}
 
+        {answer.stopped && !answer.text && !answer.fact && (
+          <p className="text-sm text-muted-foreground">Stopped.</p>
+        )}
+
         {answer.text && (
-          <p className="leading-relaxed" aria-live="polite">
-            <AnswerText text={answer.text} citations={answer.citations} />
+          <p className="leading-relaxed">
+            <AnswerText text={answer.text} citations={answer.citations} sources={sources} toSource={toSource} />
             {answer.status === "streaming" && <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-primary align-middle" />}
           </p>
         )}
 
-        {answer.citations.length > 0 && (
+        {sources.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground">
-              {answer.citations.length === 1 ? "Source" : `${answer.citations.length} sources`}
+              {sources.length === 1 ? "Source" : `${sources.length} sources`}
             </p>
             <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-              {answer.citations.map((c, i) => (
+              {sources.map((c, i) => (
                 <li key={`${c.documentId}-${i}`}>
                   <SourceCard citation={c} n={i + 1} />
                 </li>
@@ -105,7 +133,7 @@ export function AnswerCard({ answer, onRetry }: { answer: Answer; onRetry: (q: s
           </div>
         )}
 
-        {answer.status === "done" && answer.askId && !answer.notFound && (
+        {answer.status === "done" && answer.askId && !answer.notFound && !answer.stopped && (
           <div className="flex items-center gap-1 border-t pt-3 text-xs text-muted-foreground">
             <span className="mr-1">Was this right?</span>
             {(["up", "down"] as const).map((v) => (
@@ -116,10 +144,8 @@ export function AnswerCard({ answer, onRetry }: { answer: Answer; onRetry: (q: s
                 className={cn("size-8", vote === v && "bg-accent text-accent-foreground")}
                 aria-label={v === "up" ? "Yes, correct" : "No, wrong"}
                 aria-pressed={vote === v}
-                onClick={() => {
-                  setVote(v);
-                  void sendFeedback(answer.askId!, v);
-                }}
+                disabled={voting}
+                onClick={() => castVote(v)}
               >
                 {v === "up" ? <ThumbsUp /> : <ThumbsDown />}
               </Button>
@@ -134,21 +160,37 @@ export function AnswerCard({ answer, onRetry }: { answer: Answer; onRetry: (q: s
 
 /** The answer with each "[n]" turned into a small link to source n, opened at the
  * cited page with the passage highlighted. */
-function AnswerText({ text, citations }: { text: string; citations: Citation[] }) {
-  return splitCitations(text, citations.length).map((part, i) =>
-    part.kind === "text" ? (
-      <span key={i}>{part.text}</span>
-    ) : (
+function AnswerText({
+  text,
+  citations,
+  sources,
+  toSource,
+}: {
+  text: string;
+  citations: Citation[];
+  sources: Citation[];
+  toSource: number[];
+}) {
+  const parts = splitCitations(text, citations.length);
+  return parts.map((part, i) => {
+    if (part.kind === "text") return <span key={i}>{part.text}</span>;
+    // Markers are renumbered to the de-duplicated source cards; "[1][2]" for the same
+    // page shows one chip.
+    const s = toSource[part.n - 1];
+    const prev = parts[i - 1];
+    if (prev?.kind === "cite" && toSource[prev.n - 1] === s) return null;
+    const c = sources[s];
+    return (
       <Link
         key={i}
-        href={citationHref(citations[part.n - 1])}
-        className="tabular relative mx-0.5 inline-flex h-4 min-w-4 before:absolute before:-inset-3 before:content-[''] items-center justify-center rounded bg-accent px-1 align-super text-[10px] font-semibold text-accent-foreground no-underline hover:bg-primary hover:text-primary-foreground"
-        aria-label={`Source ${part.n}: ${citations[part.n - 1].title}, page ${citations[part.n - 1].page}`}
+        href={citationHref(c)}
+        className="tabular relative mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded bg-accent px-1 align-super text-[10px] font-semibold text-accent-foreground no-underline before:absolute before:-inset-3 before:content-[''] hover:bg-primary hover:text-primary-foreground"
+        aria-label={`Source ${s + 1}: ${c.title}, page ${c.page}`}
       >
-        {part.n}
+        {s + 1}
       </Link>
-    ),
-  );
+    );
+  });
 }
 
 function SourceCard({ citation: c, n }: { citation: Citation; n: number }) {
@@ -160,7 +202,7 @@ function SourceCard({ citation: c, n }: { citation: Citation; n: number }) {
       <span className="relative h-16 w-12 shrink-0 overflow-hidden rounded-md border bg-white">
         {c.thumbnailUrl ? (
           <>
-            <Image src={c.thumbnailUrl} alt="" fill unoptimized className="object-cover object-top" sizes="48px" />
+            <SignedImage src={c.thumbnailUrl} alt="" fill unoptimized className="object-cover object-top" sizes="48px" />
             {c.box && (
               <span
                 aria-hidden

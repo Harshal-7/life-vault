@@ -3,7 +3,6 @@
 import { ArrowLeft, Loader2, RotateCw, Trash2, TriangleAlert } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
 
 import { AutoRefresh } from "@/components/app/auto-refresh";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import type { Box, Deadline, DocumentDetail, FieldKey } from "@/lib/data/types";
 import { DOC_TYPE_META } from "@/lib/doc-meta";
 import { formatBytes, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { runAction } from "@/lib/run-action";
 
 import { DocTypeTile, StatusBadge } from "./doc-bits";
 import { DocumentActions } from "./document-actions";
@@ -98,9 +98,8 @@ export function DocumentWorkspace({ doc, deadlines }: { doc: DocumentDetail; dea
               disabled={retrying}
               onClick={() =>
                 startRetry(async () => {
-                  await retryDocument(doc.id);
-                  toast("Trying again…");
-                  router.refresh();
+                  if (await runAction(() => retryDocument(doc.id), { success: "Trying again…", error: "Couldn't start again. Try in a moment." }))
+                    router.refresh();
                 })
               }
             >

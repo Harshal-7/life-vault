@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { AccountMenu, AccountMenuSkeleton } from "@/components/app/account";
 import { AskCommandProvider } from "@/components/app/ask-command";
 import { BottomNav } from "@/components/app/bottom-nav";
+import { OfflineBanner } from "@/components/app/offline-banner";
 import { Sidebar } from "@/components/app/sidebar";
 import { TopBar } from "@/components/app/top-bar";
 import { UploadSheet } from "@/components/upload/upload-sheet";
@@ -36,6 +37,7 @@ export default function VaultLayout({ children }: LayoutProps<"/vault">) {
               </Suspense>
             }
           />
+          <OfflineBanner />
           <main id="main" className="flex-1 pb-28 md:pb-12">
             {children}
           </main>

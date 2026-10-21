@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { splitCitations } from "./citations";
+import { dedupeCitations, splitCitations } from "./citations";
 
 describe("splitCitations", () => {
   it("turns markers into citations and keeps the text around them", () => {
@@ -27,5 +27,17 @@ describe("splitCitations", () => {
 
   it("handles a marker still arriving mid-stream", () => {
     expect(splitCitations("Ends 2 Mar 2027 [", 1)).toEqual([{ kind: "text", text: "Ends 2 Mar 2027 [" }]);
+  });
+});
+
+describe("dedupeCitations", () => {
+  it("shows each document page once and keeps numbers pointing at the right card", () => {
+    const a1 = { documentId: "a", page: 1, box: "field" };
+    const a1again = { documentId: "a", page: 1, box: "passage" };
+    const b2 = { documentId: "b", page: 2, box: null };
+    const a2 = { documentId: "a", page: 2, box: null };
+    const { sources, toSource } = dedupeCitations([a1, a1again, b2, a2]);
+    expect(sources).toEqual([a1, b2, a2]);
+    expect(toSource).toEqual([0, 0, 1, 2]);
   });
 });

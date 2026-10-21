@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Loader2, Search } from "lucide-react";
+import { ArrowUp, Search, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ export function AskBar({
   size = "default",
   placeholder = "Ask about your documents…",
   trailing,
+  onStop,
   value: controlled,
   onValueChange,
 }: {
@@ -26,6 +27,8 @@ export function AskBar({
   size?: "default" | "hero";
   placeholder?: string;
   trailing?: React.ReactNode;
+  /** While busy, the send button becomes Stop (when given). */
+  onStop?: () => void;
   value?: string;
   onValueChange?: (v: string) => void;
 }) {
@@ -66,15 +69,28 @@ export function AskBar({
         className={cn("min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground", hero && "text-base md:text-lg")}
       />
       {trailing}
-      <Button
-        type="submit"
-        size="icon"
-        disabled={!value.trim() || busy}
-        aria-label="Ask"
-        className={cn("shrink-0 rounded-xl", hero ? "size-10" : "size-9")}
-      >
-        {busy ? <Loader2 className="animate-spin" /> : <ArrowUp />}
-      </Button>
+      {busy && onStop ? (
+        <Button
+          type="button"
+          size="icon"
+          variant="secondary"
+          onClick={onStop}
+          aria-label="Stop answering"
+          className={cn("shrink-0 rounded-xl", hero ? "size-10" : "size-9")}
+        >
+          <Square className="size-3.5 fill-current" />
+        </Button>
+      ) : (
+        <Button
+          type="submit"
+          size="icon"
+          disabled={!value.trim() || busy}
+          aria-label="Ask"
+          className={cn("shrink-0 rounded-xl", hero ? "size-10" : "size-9")}
+        >
+          <ArrowUp />
+        </Button>
+      )}
     </form>
   );
 }

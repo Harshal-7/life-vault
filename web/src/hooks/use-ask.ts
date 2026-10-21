@@ -16,7 +16,17 @@ export type Answer = {
   notFound?: string;
   askId?: string;
   error?: string;
+  /** Stopped by the user before it finished. */
+  stopped?: boolean;
 };
+
+/** Plain words for failures that don't come with a message of their own. */
+function friendlyError(err: unknown): string {
+  if (err instanceof TypeError) return "Couldn't reach Life Vault. Check your connection and try again.";
+  const message = err instanceof Error ? err.message : "";
+  if (!message || /^Ask failed \(\d+\)$/.test(message)) return "Something went wrong on our side. Try again in a moment.";
+  return message;
+}
 
 /**
  * Asks /api/ask and builds up the answer as events stream in.
@@ -25,6 +35,7 @@ export type Answer = {
 export function useAsk() {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const controller = useRef<AbortController | null>(null);
+  const stopping = useRef(false);
 
   // Stop streaming if the page is left mid-answer.
   useEffect(() => () => controller.current?.abort(), []);
@@ -33,6 +44,7 @@ export function useAsk() {
     const question = raw.trim();
     if (!question) return;
     controller.current?.abort();
+    stopping.current = false;
     const abort = new AbortController();
     controller.current = abort;
 
@@ -90,15 +102,26 @@ export function useAsk() {
       }
       update((a) => (a.status === "done" || a.status === "error" ? {} : { status: "done" }));
     } catch (err) {
+      if (abort.signal.aborted && stopping.current) {
+        // Stopped by the user: keep whatever had arrived.
+        update((a) => (a.status === "done" ? {} : { status: "done", stopped: true }));
+        return;
+      }
       if (abort.signal.aborted) {
         // Replaced by a newer question: drop it if nothing had arrived yet.
         setAnswers((list) => list.filter((a) => a.id !== id || a.text || a.fact || a.notFound));
         update((a) => (a.status === "done" ? {} : { status: "done" }));
         return;
       }
-      update({ status: "error", error: err instanceof Error ? err.message : "Something went wrong." });
+      update({ status: "error", error: friendlyError(err) });
     }
   }, []);
 
-  return { answers, ask };
+  /** Stop the answer that's streaming now. */
+  const stop = useCallback(() => {
+    stopping.current = true;
+    controller.current?.abort();
+  }, []);
+
+  return { answers, ask, stop };
 }

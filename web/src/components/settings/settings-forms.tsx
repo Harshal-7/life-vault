@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { saveSettings } from "@/lib/data/actions";
 import { cn } from "@/lib/utils";
+import { runAction } from "@/lib/run-action";
 
 export function CopyAddress({ address }: { address: string }) {
   const [copied, setCopied] = useState(false);
@@ -54,11 +55,20 @@ export function AllowedSenders({ initial }: { initial: string[] }) {
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
 
-  const persist = (next: string[], message: string) =>
+  /** Saves the list; resolves true when it worked (the draft is only cleared then). */
+  const persist = (next: string[], message: string, onSaved?: () => void) =>
     startTransition(async () => {
-      const saved = await saveSettings({ allowedSenders: next });
-      setSenders(saved.allowedSenders);
-      toast.success(message);
+      let saved: string[] | undefined;
+      const ok = await runAction(
+        async () => {
+          saved = (await saveSettings({ allowedSenders: next })).allowedSenders;
+        },
+        { success: message },
+      );
+      if (ok && saved) {
+        setSenders(saved);
+        onSaved?.();
+      }
     });
 
   return (
@@ -89,8 +99,7 @@ export function AllowedSenders({ initial }: { initial: string[] }) {
           if (!EMAIL.test(email)) return setError("Enter a valid email address.");
           if (senders.includes(email)) return setError("That address is already allowed.");
           setError("");
-          setDraft("");
-          persist([...senders, email], `Added ${email}`);
+          persist([...senders, email], `Added ${email}`, () => setDraft(""));
         }}
       >
         <div className="flex-1 space-y-1">
@@ -134,9 +143,11 @@ export function ReminderDays({ initial }: { initial: number[] }) {
       toast("Keep at least one reminder", { description: "Otherwise deadlines could slip past unnoticed." });
       return;
     }
+    const before = days;
     setDays(next);
     startTransition(async () => {
-      await saveSettings({ reminderDays: next });
+      const ok = await runAction(() => saveSettings({ reminderDays: next }).then(() => undefined), { success: "Reminders updated" });
+      if (!ok) setDays(before);
     });
   };
 

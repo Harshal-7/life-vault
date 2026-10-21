@@ -1,17 +1,30 @@
 "use client";
 
-import { ArrowLeft, Loader2, MailCheck } from "lucide-react";
+import { ArrowLeft, Loader2, MailCheck, RotateCw } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 
 type Status = "idle" | "sending" | "sent" | "error";
+
+const RESEND_AFTER_S = 30;
+
+/** Supabase's messages are written for developers; these are for people. */
+function friendlyError(err: unknown): string {
+  const message = err instanceof Error ? err.message.toLowerCase() : "";
+  if (message.includes("rate limit") || message.includes("too many") || message.includes("security purposes"))
+    return "Too many sign-in emails just now. Wait a minute, then try again.";
+  if (message.includes("invalid") && message.includes("email")) return "That email address doesn't look right.";
+  if (err instanceof TypeError || message.includes("fetch")) return "Couldn't reach Life Vault. Check your connection.";
+  return "Couldn't send the link. Try again in a minute.";
+}
 
 export default function LoginPage() {
   return (
@@ -20,7 +33,15 @@ export default function LoginPage() {
         <Logo />
       </Link>
       <div className="w-full max-w-sm rounded-2xl border bg-card p-6 shadow-sm">
-        <Suspense fallback={<div className="h-64" />}>
+        <Suspense
+          fallback={
+            <div className="space-y-4" aria-busy="true">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          }
+        >
           <LoginForm />
         </Suspense>
       </div>
@@ -37,8 +58,17 @@ function LoginForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState(params.get("error") === "link" ? "That sign-in link has expired or was already used. Request a new one." : "");
 
-  async function sendLink(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  // Seconds until "Resend link" is allowed (Supabase limits how often it emails).
+  const [wait, setWait] = useState(0);
+  const [sentOnce, setSentOnce] = useState(false);
+  useEffect(() => {
+    if (wait <= 0) return;
+    const t = setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => clearTimeout(t);
+  }, [wait]);
+
+  async function sendLink(event?: React.FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
     setStatus("sending");
     setError("");
     try {
@@ -49,13 +79,16 @@ function LoginForm() {
       });
       if (error) throw error;
       setStatus("sent");
+      setSentOnce(true);
+      setWait(RESEND_AFTER_S);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't send the link. Try again.");
+      setError(friendlyError(err));
       setStatus("error");
     }
   }
 
-  if (status === "sent") {
+  // Stay on "Check your email" while a resend is going out.
+  if (status === "sent" || (status === "sending" && sentOnce)) {
     return (
       <div className="space-y-4 text-center" role="status">
         <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-accent text-accent-foreground">
@@ -67,9 +100,23 @@ function LoginForm() {
             We sent a sign-in link to <strong className="text-foreground">{email}</strong>. Open it on this device.
           </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setStatus("idle")}>
-          <ArrowLeft /> Use a different email
-        </Button>
+        <p className="text-xs text-muted-foreground">Not there? Check spam, or send it again.</p>
+        <div className="flex flex-col items-center gap-1">
+          <Button variant="outline" disabled={wait > 0 || status === "sending"} onClick={() => void sendLink()}>
+            {status === "sending" ? <Loader2 className="animate-spin" /> : <RotateCw />}
+            {wait > 0 ? `Resend link in ${wait}s` : "Resend link"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSentOnce(false);
+              setStatus("idle");
+            }}
+          >
+            <ArrowLeft /> Use a different email
+          </Button>
+        </div>
       </div>
     );
   }
@@ -95,6 +142,7 @@ function LoginForm() {
             placeholder="you@example.com"
             className="h-10"
             aria-describedby={error ? "login-error" : undefined}
+            aria-invalid={Boolean(error)}
           />
         </div>
         <Button type="submit" disabled={status === "sending"} className="h-10 w-full">
@@ -107,24 +155,6 @@ function LoginForm() {
           </p>
         )}
       </form>
-
-      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-        <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
-      </div>
-      <Button variant="outline" className="h-10 w-full" disabled>
-        <GoogleMark /> Continue with Google <span className="text-xs text-muted-foreground">(soon)</span>
-      </Button>
     </div>
-  );
-}
-
-function GoogleMark() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-4" aria-hidden>
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" />
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" />
-      <path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.07H2.18A11 11 0 0 0 1 12c0 1.78.43 3.45 1.18 4.93l3.66-2.83z" />
-      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A10.6 10.6 0 0 0 12 1 11 11 0 0 0 2.18 7.07l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38z" />
-    </svg>
   );
 }

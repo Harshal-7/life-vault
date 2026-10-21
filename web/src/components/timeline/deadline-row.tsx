@@ -3,7 +3,6 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useOptimistic, useTransition } from "react";
-import { toast } from "sonner";
 
 import { DocTypeTile } from "@/components/documents/doc-bits";
 import { Switch } from "@/components/ui/switch";
@@ -13,6 +12,7 @@ import { DEADLINE_LABELS, deadlineLabel } from "@/lib/doc-meta";
 import { formatDate, relativeDays } from "@/lib/format";
 import { deadlineField } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
+import { runAction } from "@/lib/run-action";
 
 const month = new Intl.DateTimeFormat("en-IN", { month: "short", timeZone: "UTC" });
 
@@ -62,9 +62,10 @@ export function DeadlineRow({ deadline: d }: { deadline: Deadline & { days: numb
           checked={on}
           onCheckedChange={(next) =>
             startTransition(async () => {
-              setOn(next);
-              await setReminder(d.id, next);
-              toast(next ? "Reminders on" : "Reminders off", { description: `${DEADLINE_LABELS[d.kind]}: ${d.documentTitle}` });
+              setOn(next); // reverts by itself if the save fails
+              await runAction(() => setReminder(d.id, next), {
+                success: `${next ? "Reminders on" : "Reminders off"}: ${d.documentTitle}`,
+              });
             })
           }
           aria-label={`Email reminders for ${DEADLINE_LABELS[d.kind].toLowerCase()}, ${d.documentTitle}`}

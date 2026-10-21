@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, CheckCircle2, CopyCheck, FileUp, Loader2, Mail, TriangleAlert, X } from "lucide-react";
+import { Camera, CheckCircle2, CopyCheck, FileUp, Loader2, Mail, RotateCw, TriangleAlert, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -101,64 +101,71 @@ export function UploadSheet({ inbound }: { inbound: boolean }) {
     router.replace(`${pathname}${sp.size ? `?${sp}` : ""}`, { scroll: false });
   }, [params, pathname, router]);
 
-  // Start fresh each time the panel opens (reset during render, React's recommended way).
+  const busy = items.some((i) => i.state === "checking" || i.state === "uploading");
+
+  // Start fresh each time the panel opens (reset during render, React's recommended way),
+  // unless uploads from last time are still going.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
-    if (open) setItems([]);
+    if (open && !busy) setItems([]);
   }
+
+  // The files themselves, kept for Retry.
+  const files = useRef(new Map<string, { file: File; source: DocSource }>());
 
   const patch = (key: string, p: Partial<Item>) =>
     setItems((list) => list.map((it) => (it.key === key ? { ...it, ...p } : it)));
 
-  const addFiles = async (files: FileList | File[], source: DocSource) => {
-    const batch = [...files].map((file) => ({ file, key: `${file.name}-${file.size}-${crypto.randomUUID()}` }));
-    setItems((list) => [
-      ...batch.map(({ file, key }) => ({ key, name: file.name, size: file.size, state: "checking" as const, progress: 0 })),
-      ...list,
-    ]);
-
-    let added = 0;
-    await Promise.all(
-      batch.map(async ({ file, key }) => {
-        const check = checkFile(file);
-        if (!check.ok) return patch(key, { state: "rejected", message: check.reason });
-        try {
-          const hash = await sha256(file);
-          patch(key, { state: "uploading", progress: 0.05 });
-          const result = await createUpload({
-            filename: file.name,
-            sizeBytes: file.size,
-            mimeType: file.type || mimeFromName(file.name),
-            sha256: hash,
-            source,
-          });
-          if (!result.ok) {
-            patch(key, { state: "duplicate", doc: result.existing, message: `Already in your vault as “${result.existing.title}”.` });
-            return;
-          }
-          if (result.uploadUrl) {
-            // Real backend: the file goes straight to private storage, never through our servers.
-            await putFile(result.uploadUrl, file, (p) => patch(key, { progress: 0.05 + p * 0.9 }));
-            const done = await completeUpload(result.document.id);
-            if (!done.ok) throw new Error(done.error);
-          } else {
-            // Demo mode: simulated progress.
-            for (const p of [0.35, 0.6, 0.85]) {
-              await new Promise((r) => setTimeout(r, 180 + Math.random() * 220));
-              patch(key, { progress: p });
-            }
-          }
-          added++;
-          patch(key, { state: "done", progress: 1, doc: result.document });
-        } catch (err) {
-          patch(key, {
-            state: "error",
-            message: err instanceof Error && err.message ? err.message : "Upload failed. Check your connection and try again.",
-          });
+  /** Upload one file; true when it was added. */
+  const uploadOne = async (key: string): Promise<boolean> => {
+    const entry = files.current.get(key);
+    if (!entry) return false;
+    const { file, source } = entry;
+    patch(key, { state: "checking", progress: 0, message: undefined });
+    const check = checkFile(file);
+    if (!check.ok) {
+      patch(key, { state: "rejected", message: check.reason });
+      return false;
+    }
+    try {
+      const hash = await sha256(file);
+      patch(key, { state: "uploading", progress: 0.05 });
+      const result = await createUpload({
+        filename: file.name,
+        sizeBytes: file.size,
+        mimeType: file.type || mimeFromName(file.name),
+        sha256: hash,
+        source,
+      });
+      if (!result.ok) {
+        patch(key, { state: "duplicate", doc: result.existing, message: `Already in your vault as “${result.existing.title}”.` });
+        return false;
+      }
+      if (result.uploadUrl) {
+        // Real backend: the file goes straight to private storage, never through our servers.
+        await putFile(result.uploadUrl, file, (p) => patch(key, { progress: 0.05 + p * 0.9 }));
+        const done = await completeUpload(result.document.id);
+        if (!done.ok) throw new Error(done.error);
+      } else {
+        // Demo mode: simulated progress.
+        for (const p of [0.35, 0.6, 0.85]) {
+          await new Promise((r) => setTimeout(r, 180 + Math.random() * 220));
+          patch(key, { progress: p });
         }
-      }),
-    );
+      }
+      patch(key, { state: "done", progress: 1, doc: result.document });
+      return true;
+    } catch (err) {
+      patch(key, {
+        state: "error",
+        message: err instanceof Error && err.message ? err.message : "Upload failed. Check your connection and try again.",
+      });
+      return false;
+    }
+  };
+
+  const announceAdded = (added: number) => {
     if (added > 0) {
       toast.success(added === 1 ? "Added 1 document" : `Added ${added} documents`, {
         description: "We're reading it now. You'll see the details in a few seconds.",
@@ -167,10 +174,37 @@ export function UploadSheet({ inbound }: { inbound: boolean }) {
     }
   };
 
-  const busy = items.some((i) => i.state === "checking" || i.state === "uploading");
+  const addFiles = async (list: FileList | File[], source: DocSource) => {
+    const batch = [...list].map((file) => ({ file, key: `${file.name}-${file.size}-${crypto.randomUUID()}` }));
+    for (const { file, key } of batch) files.current.set(key, { file, source });
+    setItems((items) => [
+      ...batch.map(({ file, key }) => ({ key, name: file.name, size: file.size, state: "checking" as const, progress: 0 })),
+      ...items,
+    ]);
+    // Three at a time: each file is read into memory for its checksum, which adds up
+    // on a phone with twenty photos.
+    let added = 0;
+    const queue = batch.map((b) => b.key);
+    const worker = async () => {
+      for (let key = queue.shift(); key; key = queue.shift()) if (await uploadOne(key)) added++;
+    };
+    await Promise.all([worker(), worker(), worker()]);
+    announceAdded(added);
+  };
+
+  const retry = async (key: string) => announceAdded((await uploadOne(key)) ? 1 : 0);
+  const dismiss = (key: string) => {
+    files.current.delete(key);
+    setItems((list) => list.filter((i) => i.key !== key));
+  };
+
+  const closeSheet = () => {
+    if (busy) toast("Uploads continue in the background.");
+    close();
+  };
 
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && !busy && close()}>
+    <Sheet open={open} onOpenChange={(o) => !o && closeSheet()}>
       <SheetContent
         side={desktop ? "right" : "bottom"}
         className={cn("flex flex-col gap-0 p-0", desktop ? "w-full sm:max-w-md" : "max-h-[90dvh] rounded-t-2xl")}
@@ -239,9 +273,9 @@ export function UploadSheet({ inbound }: { inbound: boolean }) {
           </div>
 
           {items.length > 0 && (
-            <ul className="space-y-2" aria-live="polite">
+            <ul className="space-y-2">
               {items.map((item) => (
-                <UploadRow key={item.key} item={item} onOpen={close} />
+                <UploadRow key={item.key} item={item} onOpen={close} onRetry={() => void retry(item.key)} onDismiss={() => dismiss(item.key)} />
               ))}
             </ul>
           )}
@@ -260,7 +294,11 @@ export function UploadSheet({ inbound }: { inbound: boolean }) {
         </div>
 
         <SheetFooter className="border-t">
-          <Button onClick={close} disabled={busy} variant={items.some((i) => i.state === "done") ? "default" : "outline"}>
+          {/* Announced once per change in totals, not on every progress tick. */}
+          <p className="sr-only" role="status">
+            {items.length > 0 && `${items.filter((i) => i.state === "done").length} of ${items.length} added`}
+          </p>
+          <Button onClick={closeSheet} variant={items.some((i) => i.state === "done") ? "default" : "outline"}>
             {busy ? (
               <>
                 <Loader2 className="animate-spin" /> Uploading…
@@ -275,7 +313,7 @@ export function UploadSheet({ inbound }: { inbound: boolean }) {
   );
 }
 
-function UploadRow({ item, onOpen }: { item: Item; onOpen: () => void }) {
+function UploadRow({ item, onOpen, onRetry, onDismiss }: { item: Item; onOpen: () => void; onRetry: () => void; onDismiss: () => void }) {
   const icon = {
     checking: <Loader2 className="size-4 animate-spin text-muted-foreground" />,
     uploading: <Loader2 className="size-4 animate-spin text-primary" />,
@@ -301,6 +339,16 @@ function UploadRow({ item, onOpen }: { item: Item; onOpen: () => void }) {
         {(item.state === "done" || item.state === "duplicate") && item.doc && (
           <Button asChild variant="ghost" size="sm" onClick={onOpen}>
             <Link href={`/vault/documents/${item.doc.id}`}>View</Link>
+          </Button>
+        )}
+        {item.state === "error" && (
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            <RotateCw /> Retry
+          </Button>
+        )}
+        {(item.state === "error" || item.state === "rejected" || item.state === "duplicate") && (
+          <Button variant="ghost" size="icon" className="size-8" onClick={onDismiss} aria-label={`Remove ${item.name} from this list`}>
+            <X />
           </Button>
         )}
       </div>

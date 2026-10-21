@@ -1,11 +1,11 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { Box, DocumentPage } from "@/lib/data/types";
+import { SignedImage } from "@/components/app/signed-image";
 import { cn } from "@/lib/utils";
 
 const ZOOMS = [1, 1.5, 2, 3];
@@ -83,7 +83,7 @@ export function PageViewer({
           className="relative mx-auto bg-white shadow-sm ring-1 ring-black/5 transition-[width] duration-200"
           style={{ width: `${ZOOMS[zoom]! * 100}%`, maxWidth: zoom === 0 ? 640 : undefined }}
         >
-          <Image
+          <SignedImage
             src={current.url}
             alt={`${title}, page ${page}`}
             width={current.width}
@@ -136,7 +136,7 @@ export function PageViewer({
                   page === i + 1 ? "ring-2 ring-primary" : "opacity-70 hover:opacity-100",
                 )}
               >
-                <Image src={p.url} alt="" width={32} height={45} unoptimized className="h-full w-full object-cover object-top" />
+                <SignedImage src={p.url} alt="" width={32} height={45} unoptimized className="h-full w-full object-cover object-top" />
               </button>
             ))}
           </div>

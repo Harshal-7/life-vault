@@ -34,6 +34,7 @@ import { Label } from "@/components/ui/label";
 import { deleteDocument, updateDocument } from "@/lib/data/actions";
 import { DOC_TYPES, type DocType, type DocumentDetail } from "@/lib/data/types";
 import { DOC_TYPE_META } from "@/lib/doc-meta";
+import { runAction } from "@/lib/run-action";
 
 /** The ⋯ menu. The delete dialog can also be opened from outside (the failed-document
  * banner's Delete button) by passing `deleting`/`onDeletingChange`. */
@@ -58,17 +59,15 @@ export function DocumentActions({
     startTransition(async () => {
       const clean = title.trim();
       if (!clean) return;
-      await updateDocument(doc.id, { title: clean });
+      if (!(await runAction(() => updateDocument(doc.id, { title: clean }), { success: "Renamed" }))) return;
       setRenaming(false);
-      toast.success("Renamed");
       router.refresh();
     });
 
   const changeType = (type: string) =>
     startTransition(async () => {
-      await updateDocument(doc.id, { docType: type as DocType });
-      toast.success(`Moved to ${DOC_TYPE_META[type as DocType].plural}`);
-      router.refresh();
+      const moved = `Moved to ${DOC_TYPE_META[type as DocType].plural}`;
+      if (await runAction(() => updateDocument(doc.id, { docType: type as DocType }), { success: moved })) router.refresh();
     });
 
   const remove = () =>
