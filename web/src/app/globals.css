@@ -154,6 +154,28 @@
   }
 }
 
+/* Touch screens: everything you tap gets a hit area of at least 44×44px (Apple's and
+   WCAG's guidance), while keeping its drawn size. Small buttons, switches and `.tap`
+   links grow an invisible ::after; absolutely positioned buttons (sheet close) are
+   left alone so this doesn't move them. Outside @layer, so it beats utilities. */
+@media (pointer: coarse) {
+  :where([data-slot="button"], .tap):not(.absolute, .fixed) {
+    position: relative;
+  }
+  :where([data-slot="button"], .tap)::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+  [data-slot="switch"]::after {
+    inset: -14px -12px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

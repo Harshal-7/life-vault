@@ -13,8 +13,8 @@ export function HomeAsk({ voice }: { voice: boolean }) {
 
   return (
     <div className="space-y-3">
-      <AskBar onAsk={go} size="hero" placeholder="Ask anything, e.g. when does my rent agreement end?" trailing={voice ? <MicButton onTranscript={go} /> : undefined} />
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0">
+      <AskBar onAsk={go} size="hero" trailing={voice ? <MicButton onTranscript={go} /> : undefined} />
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [mask-image:linear-gradient(to_right,black_85%,transparent)] md:mx-0 md:flex-wrap md:px-0 md:[mask-image:none]">
         {STARTER_QUESTIONS.slice(0, 3).map((q) => (
           <button
             key={q}

@@ -23,6 +23,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // Draw under the iPhone notch and home bar; the top bar, bottom nav and sheets pad
+  // themselves with env(safe-area-inset-*).
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#fcfbf9" },
     { media: "(prefers-color-scheme: dark)", color: "#181614" },

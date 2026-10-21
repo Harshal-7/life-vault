@@ -72,8 +72,8 @@ async function Timeline() {
         </span>
         <span className="flex items-center gap-1.5 text-muted-foreground">
           <BellRing className="size-4" />
-          Emails {days.join(", ")} {days.length === 1 && days[0] === 1 ? "day" : "days"} before ·{" "}
-          <Link href="/vault/settings" className="underline-offset-4 hover:text-foreground hover:underline">
+          Emails {daysBefore(days)} ·{" "}
+          <Link href="/vault/settings" className="tap underline-offset-4 hover:text-foreground hover:underline">
             change
           </Link>
         </span>
@@ -107,4 +107,11 @@ function TimelineSkeleton() {
       ))}
     </div>
   );
+}
+
+/** [30, 7, 1] → "30, 7 and 1 day before". */
+function daysBefore(days: number[]): string {
+  const last = days.at(-1) ?? 1;
+  const list = days.length > 1 ? `${days.slice(0, -1).join(", ")} and ${last}` : String(last);
+  return `${list} ${last === 1 ? "day" : "days"} before`;
 }

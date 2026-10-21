@@ -42,7 +42,7 @@ function DocumentSkeleton() {
           <Skeleton className="h-4 w-40" />
         </div>
       </div>
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <Skeleton className="aspect-[3/4] max-h-[70dvh] rounded-xl" />
         <Skeleton className="h-80 rounded-xl" />
       </div>

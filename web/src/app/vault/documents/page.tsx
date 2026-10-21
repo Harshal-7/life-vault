@@ -22,7 +22,7 @@ export default function DocumentsPage({ searchParams }: PageProps<"/vault/docume
         title="Documents"
         description="Everything you've added, searchable."
         actions={
-          <Button asChild className="hidden md:inline-flex">
+          <Button asChild>
             <Link href="?upload=1">
               <Upload /> Upload
             </Link>

@@ -23,7 +23,12 @@ function Thumbnail({ doc }: { doc: DocumentSummary }) {
         width={600}
         height={840}
         unoptimized
-        className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
+        // PDFs: the top of the page (letterhead, title). Photos: the middle, since the
+        // top is often table or background around the paper.
+        className={cn(
+          "h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]",
+          doc.mimeType?.startsWith("image/") ? "object-center" : "object-top",
+        )}
       />
     );
   }
@@ -57,16 +62,14 @@ export function DocumentCard({ doc, href }: { doc: DocumentSummary; href: string
       <div className="relative aspect-[4/3] overflow-hidden border-b bg-muted/60">
         <Thumbnail doc={doc} />
         <StatusBadge status={doc.status} className="absolute top-2 left-2 shadow-sm" />
-        <span className="absolute right-2 bottom-2 rounded-lg bg-card shadow-sm sm:hidden">
-          <DocTypeTile type={doc.docType} className="size-7 [&_svg]:size-4" />
-        </span>
       </div>
       <div className="flex gap-3 p-3">
         <DocTypeTile type={doc.docType} className="hidden size-8 sm:inline-flex" />
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 min-h-10 text-sm leading-5 font-medium">{doc.title}</p>
           <p className="truncate text-xs text-muted-foreground">{doc.vendor ?? doc.originalFilename}</p>
-          {line && <p className={cn("tabular mt-1 truncate text-xs font-medium", toneClass[line.tone])}>{line.text}</p>}
+          {/* The most useful line (amount, due date): allowed to wrap rather than be cut. */}
+          {line && <p className={cn("tabular mt-1 line-clamp-2 text-xs font-medium", toneClass[line.tone])}>{line.text}</p>}
         </div>
       </div>
     </Link>
@@ -83,15 +86,8 @@ export function DocumentRow({ doc, href }: { doc: DocumentSummary; href: string 
       <DocTypeTile type={doc.docType} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{doc.title}</p>
-        <p className="truncate text-xs text-muted-foreground">
-          {doc.vendor ?? doc.originalFilename}
-          {line && (
-            <>
-              {" · "}
-              <span className={cn("tabular", toneClass[line.tone])}>{line.text}</span>
-            </>
-          )}
-        </p>
+        <p className="truncate text-xs text-muted-foreground">{doc.vendor ?? doc.originalFilename}</p>
+        {line && <p className={cn("tabular truncate text-xs font-medium", toneClass[line.tone])}>{line.text}</p>}
       </div>
       <StatusBadge status={doc.status} className="shrink-0" />
     </Link>

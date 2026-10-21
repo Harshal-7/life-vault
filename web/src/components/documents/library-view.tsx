@@ -110,7 +110,7 @@ export function LibraryView({
             <button
               type="button"
               onClick={() => onSearch("")}
-              className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+              className="absolute top-1/2 right-1 -translate-y-1/2 rounded p-2 text-muted-foreground hover:text-foreground"
               aria-label="Clear search"
             >
               <X className="size-4" />

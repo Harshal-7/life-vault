@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowUp, Loader2, Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,12 @@ export function AskBar({
   const value = controlled ?? local;
   const setValue = onValueChange ?? setLocal;
   const hero = size === "hero";
+  const input = useRef<HTMLInputElement>(null);
+
+  // Focus on load only with a mouse/keyboard: on phones the keyboard would cover the page.
+  useEffect(() => {
+    if (autoFocus && !window.matchMedia("(pointer: coarse)").matches) input.current?.focus();
+  }, [autoFocus]);
 
   return (
     <form
@@ -53,8 +59,8 @@ export function AskBar({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
+        ref={input}
         aria-label="Your question"
-        autoFocus={autoFocus}
         enterKeyHint="send"
         maxLength={500}
         className={cn("min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground", hero && "text-base md:text-lg")}

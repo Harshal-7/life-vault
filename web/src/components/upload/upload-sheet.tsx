@@ -259,7 +259,7 @@ export function UploadSheet({ inbound }: { inbound: boolean }) {
           )}
         </div>
 
-        <SheetFooter className="border-t p-4">
+        <SheetFooter className="border-t">
           <Button onClick={close} disabled={busy} variant={items.some((i) => i.state === "done") ? "default" : "outline"}>
             {busy ? (
               <>

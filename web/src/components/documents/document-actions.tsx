@@ -35,10 +35,22 @@ import { deleteDocument, updateDocument } from "@/lib/data/actions";
 import { DOC_TYPES, type DocType, type DocumentDetail } from "@/lib/data/types";
 import { DOC_TYPE_META } from "@/lib/doc-meta";
 
-export function DocumentActions({ doc }: { doc: DocumentDetail }) {
+/** The ⋯ menu. The delete dialog can also be opened from outside (the failed-document
+ * banner's Delete button) by passing `deleting`/`onDeletingChange`. */
+export function DocumentActions({
+  doc,
+  deleting: deletingProp,
+  onDeletingChange,
+}: {
+  doc: DocumentDetail;
+  deleting?: boolean;
+  onDeletingChange?: (open: boolean) => void;
+}) {
   const router = useRouter();
   const [renaming, setRenaming] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [deletingLocal, setDeletingLocal] = useState(false);
+  const deleting = deletingProp ?? deletingLocal;
+  const setDeleting = onDeletingChange ?? setDeletingLocal;
   const [title, setTitle] = useState(doc.title);
   const [pending, startTransition] = useTransition();
 

@@ -143,7 +143,7 @@ export function FieldsPanel({
                         <button
                           type="button"
                           onClick={() => onShowField(key)}
-                          className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                          className="tap text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                         >
                           Show on page
                         </button>
@@ -151,7 +151,8 @@ export function FieldsPanel({
                     </div>
                   </div>
                   {key === "referenceMasked" ? (
-                    <Input id={id} value={draft.referenceMasked || "—"} readOnly disabled className="tabular" />
+                    // Read-only, but at full contrast (a disabled input is too faint to read).
+                    <Input id={id} value={draft.referenceMasked || "—"} readOnly className="tabular h-10 bg-muted/50 focus-visible:ring-0" />
                   ) : (
                     <div className="relative">
                       {key === "amount" && (
@@ -174,13 +175,18 @@ export function FieldsPanel({
                     </div>
                   )}
                   {key === "referenceMasked" && (
-                    <p className="text-xs text-muted-foreground">Only the last digits are kept, for your safety.</p>
+                    <p className="text-xs text-muted-foreground">
+                      {draft.referenceMasked?.includes("●")
+                        ? "Only the last 4 digits are kept, for your safety."
+                        : "Read from the document; it can't be changed here."}
+                    </p>
                   )}
                   {key === "amount" && amountInvalid && <p className="text-xs text-destructive">Enter a number, like 1980.</p>}
                 </div>
               );
             })}
-            <div className="flex gap-2 pt-1">
+            {/* Phones: the save/confirm bar sticks above the bottom nav while you scroll the form. */}
+            <div className="z-10 flex gap-2 pt-1 max-md:sticky max-md:bottom-[calc(4.5rem+env(safe-area-inset-bottom))] max-md:-mx-4 max-md:-mb-4 max-md:border-t max-md:bg-card/95 max-md:px-4 max-md:py-3 max-md:backdrop-blur">
               <Button type="submit" disabled={pending || amountInvalid} className="flex-1 sm:flex-none">
                 {pending && <Loader2 className="animate-spin" />}
                 {reviewing ? "Confirm details" : "Save"}
@@ -249,7 +255,7 @@ export function FieldsPanel({
               );
             })}
           </ul>
-          <Link href="/vault/timeline" className="mt-3 inline-block text-xs font-medium text-primary underline-offset-4 hover:underline">
+          <Link href="/vault/timeline" className="tap mt-3 inline-block text-xs font-medium text-primary underline-offset-4 hover:underline">
             Manage reminders
           </Link>
         </section>

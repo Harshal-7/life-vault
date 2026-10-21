@@ -95,7 +95,7 @@ export function AnswerCard({ answer, onRetry }: { answer: Answer; onRetry: (q: s
             <p className="text-xs font-medium text-muted-foreground">
               {answer.citations.length === 1 ? "Source" : `${answer.citations.length} sources`}
             </p>
-            <ul className="grid gap-2 sm:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
               {answer.citations.map((c, i) => (
                 <li key={`${c.documentId}-${i}`}>
                   <SourceCard citation={c} n={i + 1} />
@@ -142,7 +142,7 @@ function AnswerText({ text, citations }: { text: string; citations: Citation[] }
       <Link
         key={i}
         href={citationHref(citations[part.n - 1])}
-        className="tabular mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded bg-accent px-1 align-super text-[10px] font-semibold text-accent-foreground no-underline hover:bg-primary hover:text-primary-foreground"
+        className="tabular relative mx-0.5 inline-flex h-4 min-w-4 before:absolute before:-inset-3 before:content-[''] items-center justify-center rounded bg-accent px-1 align-super text-[10px] font-semibold text-accent-foreground no-underline hover:bg-primary hover:text-primary-foreground"
         aria-label={`Source ${part.n}: ${citations[part.n - 1].title}, page ${citations[part.n - 1].page}`}
       >
         {part.n}

@@ -65,10 +65,12 @@ export function AskCommandProvider({ children }: { children: React.ReactNode }) 
         open={isOpen}
         onOpenChange={setOpen}
         title="Ask Life Vault"
+        // Phones: open near the top, so the on-screen keyboard doesn't cover the list.
+        className="max-sm:top-3"
         description="Ask a question about your documents, or jump to a page."
       >
         <Command>
-        <CommandInput placeholder="Ask anything… e.g. when does my fridge warranty end?" value={query} onValueChange={setQuery} />
+        <CommandInput placeholder="Ask anything about your documents…" value={query} onValueChange={setQuery} />
         <CommandList>
           <CommandEmpty>Press Enter to ask.</CommandEmpty>
           {typed && (

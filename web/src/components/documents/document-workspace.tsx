@@ -1,8 +1,8 @@
 "use client";
 
-import { ArrowLeft, Loader2, RotateCw, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Loader2, RotateCw, Trash2, TriangleAlert } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { AutoRefresh } from "@/components/app/auto-refresh";
@@ -11,6 +11,7 @@ import { retryDocument } from "@/lib/data/actions";
 import type { Box, Deadline, DocumentDetail, FieldKey } from "@/lib/data/types";
 import { DOC_TYPE_META } from "@/lib/doc-meta";
 import { formatBytes, formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import { DocTypeTile, StatusBadge } from "./doc-bits";
 import { DocumentActions } from "./document-actions";
@@ -37,6 +38,8 @@ export function DocumentWorkspace({ doc, deadlines }: { doc: DocumentDetail; dea
   const [activeField, setActiveField] = useState<FieldKey | null>(fieldParam);
   const [page, setPage] = useState(initialBox?.page ?? 1);
   const [retrying, startRetry] = useTransition();
+  const [deleting, setDeleting] = useState(false);
+  const viewer = useRef<HTMLDivElement>(null);
 
   const showField = (key: FieldKey) => {
     const box = doc.fieldBoxes[key];
@@ -44,6 +47,11 @@ export function DocumentWorkspace({ doc, deadlines }: { doc: DocumentDetail; dea
     setActiveField(key);
     setHighlight(box);
     setPage(box.page);
+    // When the page is stacked (phones, tablets), the viewer may be off-screen.
+    const rect = viewer.current?.getBoundingClientRect();
+    if (rect && (rect.bottom < 80 || rect.top > window.innerHeight - 80)) {
+      viewer.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   const back = () => {
@@ -65,14 +73,16 @@ export function DocumentWorkspace({ doc, deadlines }: { doc: DocumentDetail; dea
         </Button>
         <DocTypeTile type={doc.docType} className="hidden sm:inline-flex" />
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl leading-tight font-semibold tracking-tight md:text-2xl">{doc.title}</h1>
+          <h1 className="text-xl leading-tight font-semibold tracking-tight break-words md:text-2xl">{doc.title}</h1>
           <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-            <span>{DOC_TYPE_META[doc.docType].label}</span>
-            {doc.vendor && <span>· {doc.vendor}</span>}
+            <span>
+              {DOC_TYPE_META[doc.docType].label}
+              {doc.vendor && ` · ${doc.vendor}`}
+            </span>
             <StatusBadge status={doc.status} />
           </p>
         </div>
-        <DocumentActions doc={doc} />
+        <DocumentActions doc={doc} deleting={deleting} onDeletingChange={setDeleting} />
       </div>
 
       {doc.status === "failed" && (
@@ -80,21 +90,26 @@ export function DocumentWorkspace({ doc, deadlines }: { doc: DocumentDetail; dea
           <TriangleAlert className="size-5 shrink-0 text-destructive" />
           <div className="flex-1">
             <p className="font-medium">We couldn&apos;t read this file</p>
-            <p className="text-sm text-muted-foreground">{doc.error ?? "Try a sharper photo or the original PDF."}</p>
+            <p className="text-sm text-muted-foreground">{friendlyError(doc.error)}</p>
           </div>
-          <Button
-            variant="outline"
-            disabled={retrying}
-            onClick={() =>
-              startRetry(async () => {
-                await retryDocument(doc.id);
-                toast("Trying again…");
-                router.refresh();
-              })
-            }
-          >
-            {retrying ? <Loader2 className="animate-spin" /> : <RotateCw />} Try again
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              disabled={retrying}
+              onClick={() =>
+                startRetry(async () => {
+                  await retryDocument(doc.id);
+                  toast("Trying again…");
+                  router.refresh();
+                })
+              }
+            >
+              {retrying ? <Loader2 className="animate-spin" /> : <RotateCw />} Try again
+            </Button>
+            <Button variant="ghost" onClick={() => setDeleting(true)} className="text-destructive hover:text-destructive">
+              <Trash2 /> Delete
+            </Button>
+          </div>
         </div>
       )}
 
@@ -108,20 +123,22 @@ export function DocumentWorkspace({ doc, deadlines }: { doc: DocumentDetail; dea
         </div>
       )}
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="min-w-0">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div ref={viewer} className="min-w-0 scroll-mt-20">
           {doc.pages.length > 0 ? (
             <PageViewer pages={doc.pages} page={page} onPageChange={setPage} highlight={highlight} title={doc.title} />
           ) : doc.fileUrl ? (
             <OriginalFile doc={doc} url={doc.fileUrl} />
-          ) : (
+          ) : doc.status === "failed" ? null : (
             <div className="flex aspect-[4/3] items-center justify-center rounded-xl border bg-muted/40 text-sm text-muted-foreground">
               No preview available
             </div>
           )}
         </div>
 
-        <aside className="space-y-4">
+        {/* Needs review: on phones and tablets the form comes before the page, so the
+            thing to do is on screen first. */}
+        <aside className={cn("space-y-4", doc.status === "needs_review" && "max-xl:order-first")}>
           {!processing && doc.status !== "failed" && (
             // Remount the form when the document changes (e.g. after a review is confirmed).
             <FieldsPanel
@@ -163,6 +180,12 @@ export function DocumentWorkspace({ doc, deadlines }: { doc: DocumentDetail; dea
   );
 }
 
+/** The worker's errors are already written for people; this covers anything else. */
+function friendlyError(error: string | null | undefined): string {
+  if (!error || /exception|traceback|error:|\b5\d\d\b/i.test(error)) return "Try a sharper photo or the original PDF.";
+  return error;
+}
+
 /** While page images don't exist yet (still reading, or it failed), show the original:
  * photos inline, PDFs in the browser's viewer. */
 function OriginalFile({ doc, url }: { doc: DocumentDetail; url: string }) {
@@ -178,7 +201,7 @@ function OriginalFile({ doc, url }: { doc: DocumentDetail; url: string }) {
         <p className="p-8 text-center text-sm text-muted-foreground">Preview isn&apos;t available for this file type yet.</p>
       )}
       <div className="flex justify-end border-t bg-background px-3 py-2">
-        <a href={url} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+        <a href={url} target="_blank" rel="noreferrer" className="tap text-sm font-medium text-primary underline-offset-4 hover:underline">
           Open original
         </a>
       </div>

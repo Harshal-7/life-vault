@@ -83,7 +83,8 @@ async function Dashboard() {
       {attention.length > 0 && (
         <section aria-labelledby="attention">
           <SectionTitle id="attention" title="Needs your attention" />
-          <ul className="grid gap-2 sm:grid-cols-2">
+          {/* grid-cols-1 (minmax(0,1fr)) so a long title truncates instead of widening the page. */}
+          <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
             {attention.map((d) => (
               <li key={d.id}>
                 <Link
@@ -152,7 +153,7 @@ function SectionTitle({ id, title, href, linkLabel }: { id: string; title: strin
         {title}
       </h2>
       {href && (
-        <Link href={href} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link href={href} className="tap flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           {linkLabel} <ArrowRight className="size-3.5" />
         </Link>
       )}

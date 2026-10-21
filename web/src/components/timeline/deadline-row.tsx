@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { setReminder } from "@/lib/data/actions";
 import type { Deadline } from "@/lib/data/types";
 import { DEADLINE_LABELS, deadlineLabel } from "@/lib/doc-meta";
-import { relativeDays } from "@/lib/format";
+import { formatDate, relativeDays } from "@/lib/format";
 import { deadlineField } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
 
@@ -41,28 +41,36 @@ export function DeadlineRow({ deadline: d }: { deadline: Deadline & { days: numb
         className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <DocTypeTile type={d.docType} className="hidden sm:inline-flex" />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium">{deadlineLabel(d.kind, d.days)}</span>
-          <span className="block truncate text-xs text-muted-foreground">{d.documentTitle}</span>
-        </span>
-        <span className={cn("tabular shrink-0 rounded-full px-2 py-0.5 text-xs font-medium", tone)}>
-          {relativeDays(d.days)}
+        {/* Phones: the pill goes under the title so the title and document name aren't cut short. */}
+        <span className="flex min-w-0 flex-1 flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-3">
+          <span className="w-full min-w-0 sm:flex-1">
+            <span className="block truncate text-sm font-medium">{deadlineLabel(d.kind, d.days)}</span>
+            <span className="line-clamp-2 text-xs text-muted-foreground sm:line-clamp-1">{d.documentTitle}</span>
+            {/* The date block is decorative, so screen readers get the date here. */}
+            <span className="sr-only">{formatDate(d.dueDate)}</span>
+          </span>
+          <span className={cn("tabular shrink-0 rounded-full px-2 py-0.5 text-xs font-medium", tone)}>
+            {relativeDays(d.days)}
+          </span>
         </span>
         <ChevronRight className="hidden size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 sm:block" />
       </Link>
 
-      <Switch
-        checked={on}
-        onCheckedChange={(next) =>
-          startTransition(async () => {
-            setOn(next);
-            await setReminder(d.id, next);
-            toast(next ? "Reminders on" : "Reminders off", { description: `${DEADLINE_LABELS[d.kind]}: ${d.documentTitle}` });
-          })
-        }
-        aria-label={`Email reminders for ${DEADLINE_LABELS[d.kind].toLowerCase()}, ${d.documentTitle}`}
-        className="shrink-0"
-      />
+      {/* No reminder switch once the date has passed: nothing left to remind about. */}
+      {d.days >= 0 && (
+        <Switch
+          checked={on}
+          onCheckedChange={(next) =>
+            startTransition(async () => {
+              setOn(next);
+              await setReminder(d.id, next);
+              toast(next ? "Reminders on" : "Reminders off", { description: `${DEADLINE_LABELS[d.kind]}: ${d.documentTitle}` });
+            })
+          }
+          aria-label={`Email reminders for ${DEADLINE_LABELS[d.kind].toLowerCase()}, ${d.documentTitle}`}
+          className="shrink-0"
+        />
+      )}
     </li>
   );
 }

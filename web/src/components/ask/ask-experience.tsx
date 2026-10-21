@@ -59,7 +59,7 @@ export function AskExperience({ recent, voice }: { recent: React.ReactNode; voic
         <div className="space-y-8">
           <section>
             <h2 className="mb-3 text-sm font-medium text-muted-foreground">Try asking</h2>
-            <ul className="grid gap-2 sm:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {STARTER_QUESTIONS.map((s) => (
                 <li key={s}>
                   <button
