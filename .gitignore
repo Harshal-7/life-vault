@@ -7,7 +7,7 @@
 
 # --- Personal data: never commit real documents ---
 uploads/
-evals/private/
+**/evals/private/
 
 # --- Python ---
 __pycache__/
@@ -32,5 +32,4 @@ next-env.d.ts
 .idea/
 .vscode/
 *.log
-evals/.cache/
-api/evals/.cache/
+**/evals/.cache/
