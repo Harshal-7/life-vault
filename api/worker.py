@@ -17,7 +17,7 @@ from app.db.session import SessionLocal
 from app.pipeline.read import ReadError
 from app.pipeline.run import DocInput, read_document, save_result
 from app.providers.embeddings import VoyageEmbedder
-from app.providers.llm import ClaudeReader
+from app.providers.llm import get_reader, reader_configured
 from app.queue import queue_name, redis_settings
 
 log = logging.getLogger("worker")
@@ -31,14 +31,18 @@ async def process_document(ctx: dict, document_id: str) -> str:
         if doc is None:
             return "missing"  # deleted before we got to it
         job = DocInput(doc.id, doc.user_id, doc.file_key, doc.mime_type, doc.original_filename)
-    # The session is closed while Claude and Voyage work (seconds to a minute), so a
+    # The session is closed while the AI and Voyage work (seconds to a minute), so a
     # slow document doesn't hold a database connection.
 
     settings = get_settings()
     error: str | None = None
     result = None
-    if not (settings.anthropic_api_key and settings.embeddings_api_key):
-        log.error("ANTHROPIC_API_KEY / EMBEDDINGS_API_KEY not set; cannot read %s", document_id)
+    if not (reader_configured() and settings.embeddings_api_key):
+        log.error(
+            "%s key or EMBEDDINGS_API_KEY not set; cannot read %s",
+            settings.llm_provider,
+            document_id,
+        )
         error = NOT_SET_UP
     else:
         try:
@@ -46,7 +50,7 @@ async def process_document(ctx: dict, document_id: str) -> str:
         except ReadError as exc:
             error = str(exc)
         except Exception:
-            # Claude/Voyage/Storage outage or a bug. Mark it failed (the user gets a
+            # AI provider/Voyage/Storage outage or a bug. Mark it failed (the user gets a
             # Retry button) rather than letting arq retry blindly and spend money.
             log.exception("processing failed for %s", document_id)
             error = READ_FAILED
@@ -58,8 +62,9 @@ async def process_document(ctx: dict, document_id: str) -> str:
         if result is not None:
             await save_result(session, doc, result)
             log.info(
-                "read %s: %s, %d pages, %d chunks, status %s, timings %s",
+                "read %s by %s: %s, %d pages, %d chunks, status %s, timings %s",
                 document_id,
+                doc.read_by,
                 doc.doc_type,
                 doc.page_count,
                 len(result.chunks),
@@ -74,7 +79,7 @@ async def process_document(ctx: dict, document_id: str) -> str:
 
 async def startup(ctx: dict) -> None:
     # One client each for the life of the worker, so connections are reused.
-    ctx["reader"] = ClaudeReader()
+    ctx["reader"] = get_reader()  # Claude or Gemini, from LLM_PROVIDER
     ctx["embedder"] = VoyageEmbedder()
 
 

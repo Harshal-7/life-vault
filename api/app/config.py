@@ -1,6 +1,6 @@
 import json
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -24,14 +24,23 @@ class Settings(BaseSettings):
     database_url: str = ""
     redis_url: str = ""
 
+    # Which AI reads documents (and, from M2, answers questions). Both are built in;
+    # switching is just this setting. Gemini first for now: its free tier makes
+    # testing free, but free-tier data may be used by Google, so real documents
+    # should go through a paid key (tracker #34).
+    llm_provider: Literal["gemini", "claude"] = "gemini"
+
+    gemini_api_key: str = ""
     anthropic_api_key: str = ""
     # Voyage AI key: embeddings (search by meaning) and the reranker.
     embeddings_api_key: str = ""
 
-    # Models. Haiku is fast and cheap (routing, reading PDF text); Sonnet reads photos
-    # and writes answers.
-    fast_model: str = "claude-haiku-5-5"
-    smart_model: str = "claude-sonnet-5-5"
+    # Each provider has a fast, cheap model (reading PDF text, routing) and a smarter
+    # one (reading photos, writing answers).
+    gemini_fast_model: str = "gemini-3.5-flash-lite"
+    gemini_smart_model: str = "gemini-3.8-flash"
+    claude_fast_model: str = "claude-haiku-5-5"
+    claude_smart_model: str = "claude-sonnet-5-5"
     embeddings_model: str = "voyage-3.5"
     rerank_model: str = "rerank-2.5-lite"
 

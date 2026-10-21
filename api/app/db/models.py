@@ -131,6 +131,9 @@ class Document(Base):
     field_boxes: Mapped[dict] = mapped_column(JSONB, server_default="{}")
     confidence: Mapped[dict] = mapped_column(JSONB, server_default="{}")
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Which AI read it ("gemini:<models>"), so documents read on a free tier can be
+    # found and re-read later, and evals can compare providers.
+    read_by: Mapped[str | None] = mapped_column(String(128))
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

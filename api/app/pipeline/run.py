@@ -1,6 +1,6 @@
 """The whole reading pipeline for one document:
 
-    download → pages → (photos/scans: Claude reads them) → mask IDs → extract fields
+    download → pages → (photos/scans: the AI reads them) → mask IDs → extract fields
     → highlight boxes → chunks → embeddings → upload page images → save
 
 `read_document` does the slow work without holding a database connection;
@@ -32,14 +32,13 @@ log = logging.getLogger(__name__)
 
 UNREADABLE = "We couldn't read any text in this file. Try a sharper photo or the original PDF."
 MAX_EXTRACT_CHARS = 60_000  # fields live on the first pages; skip the rest of long manuals
-VISION_CONCURRENCY = 3
 UPLOAD_CONCURRENCY = 4
 
 
 @dataclass
 class DocInput:
     """What the pipeline needs to know about the document (a plain copy, so no
-    database session has to stay open while Claude and Voyage are working)."""
+    database session has to stay open while the AI and Voyage are working)."""
 
     id: uuid.UUID
     user_id: uuid.UUID
@@ -56,6 +55,7 @@ class ReadResult:
     chunks: list[TextChunk]
     vectors: list[list[float]]
     image_keys: list[str]
+    read_by: str  # e.g. "gemini:gemini-3.5-flash-lite,gemini-3.8-flash"
     timings: dict[str, float] = field(default_factory=dict)
 
 
@@ -97,16 +97,20 @@ async def read_document(doc: DocInput, reader: Reader, embedder: Embedder) -> Re
     image_keys = await _upload_pages(doc, pages)
     lap("upload")
 
-    return ReadResult(pages, extraction, fields, chunks, vectors, image_keys, timings)
+    models = [reader.fast_model] + (
+        [reader.smart_model] if any(p.needs_vision for p in pages) else []
+    )
+    read_by = f"{reader.provider}:{','.join(models)}"
+    return ReadResult(pages, extraction, fields, chunks, vectors, image_keys, read_by, timings)
 
 
 async def _read_images(pages: list[Page], reader: Reader) -> None:
-    """Photos and scanned pages: Claude transcribes them into lines with boxes, so
-    from here on they're handled exactly like PDF text."""
+    """Photos and scanned pages: the AI (Claude or Gemini) transcribes them into lines
+    with boxes, so from here on they're handled exactly like PDF text."""
     todo = [p for p in pages if p.needs_vision]
     if not todo:
         return
-    limit = asyncio.Semaphore(VISION_CONCURRENCY)
+    limit = asyncio.Semaphore(reader.max_concurrency)
 
     async def one(page: Page) -> None:
         async with limit:
@@ -181,3 +185,4 @@ async def save_result(session: AsyncSession, doc: Document, result: ReadResult) 
     doc.status = "needs_review" if needs_review(ex.doc_type, result.fields) else "ready"
     doc.error = None
     doc.processed_at = datetime.now(UTC)
+    doc.read_by = result.read_by

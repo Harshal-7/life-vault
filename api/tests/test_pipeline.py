@@ -15,6 +15,8 @@ NONE = FieldValue(value=None, as_printed=None, page=None, confidence=0)
 
 
 class FakeReader:
+    provider, fast_model, smart_model, max_concurrency = "fake", "fast-1", "smart-1", 2
+
     def __init__(self, readable=True):
         self.readable = readable
         self.extracted_text = ""
@@ -104,6 +106,7 @@ async def test_photo_is_read_masked_and_saved(db, users, fake_files):
     assert "●●●● 2346" in reader.extracted_text
 
     assert doc.status == "ready"  # vendor + expiry found with high confidence
+    assert doc.read_by == "fake:fast-1,smart-1"  # a photo needs the smart model too
     assert doc.doc_type == "warranty" and doc.title == "Spinwell washing machine warranty"
     assert doc.tags == ["spinwell", "washing machine"]
     assert str(doc.expiry_date) == "2027-02-14" and doc.page_count == 1
@@ -130,6 +133,7 @@ async def test_running_twice_replaces_the_first_attempt(db, users, fake_files):
     pages = await db.scalar(select(func.count()).where(DocumentPage.document_id == doc.id))
     chunks = await db.scalar(select(func.count()).where(Chunk.document_id == doc.id))
     assert (pages, chunks, doc.page_count) == (3, 3, 3)
+    assert doc.read_by == "fake:fast-1"  # typed PDF: text only, no vision
     assert {p for p in (await db.scalars(select(DocumentPage.text_source))).all()} == {"pdf_text"}
 
 
