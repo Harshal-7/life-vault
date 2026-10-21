@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser } from "@/lib/auth";
 import { listDeadlines, listDocuments } from "@/lib/data";
+import { features } from "@/lib/features";
 import { greeting } from "@/lib/format";
 import { groupDeadlines } from "@/lib/timeline";
 
@@ -23,7 +24,7 @@ export default function HomePage() {
         <Suspense fallback={<Skeleton className="h-9 w-64" />}>
           <Greeting />
         </Suspense>
-        <HomeAsk />
+        <HomeAsk voice={features().voice} />
       </section>
       <Suspense fallback={<DashboardSkeleton />}>
         <Dashboard />
@@ -121,7 +122,12 @@ async function Dashboard() {
             ))}
           </ul>
         ) : (
-          <EmptyState icon={CalendarCheck} title="Nothing due soon" className="py-8" />
+          <EmptyState
+            icon={CalendarCheck}
+            title={features().deadlines ? "Nothing due soon" : "Reminders are coming soon"}
+            description={features().deadlines ? undefined : "Due dates from your documents will show up here."}
+            className="py-8"
+          />
         )}
       </section>
 

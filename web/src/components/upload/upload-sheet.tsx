@@ -82,7 +82,7 @@ async function sha256(file: File): Promise<string> {
  * The "add documents" panel. Opens whenever the URL has ?upload=1, so any link or
  * button in the app can open it. Bottom sheet on phones, side panel on desktop.
  */
-export function UploadSheet() {
+export function UploadSheet({ inbound }: { inbound: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -246,15 +246,17 @@ export function UploadSheet() {
             </ul>
           )}
 
-          <div className="flex gap-3 rounded-xl bg-muted/60 p-3 text-sm">
-            <Mail className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-            <p className="text-muted-foreground">
-              Bills arrive by email? Forward them to your vault address instead.{" "}
-              <Link href="/vault/settings" onClick={close} className="font-medium text-foreground underline-offset-4 hover:underline">
-                Find it in Settings
-              </Link>
-            </p>
-          </div>
+          {inbound && (
+            <div className="flex gap-3 rounded-xl bg-muted/60 p-3 text-sm">
+              <Mail className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <p className="text-muted-foreground">
+                Bills arrive by email? Forward them to your vault address instead.{" "}
+                <Link href="/vault/settings" onClick={close} className="font-medium text-foreground underline-offset-4 hover:underline">
+                  Find it in Settings
+                </Link>
+              </p>
+            </div>
+          )}
         </div>
 
         <SheetFooter className="border-t p-4">

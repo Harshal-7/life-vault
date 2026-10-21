@@ -15,30 +15,31 @@ import { MicButton } from "./mic-button";
  * The Ask page: question box on top, answers below (newest first).
  * A question in the URL (?q=…, e.g. from Home or ⌘K) is asked on arrival.
  */
-export function AskExperience({ recent }: { recent: React.ReactNode }) {
+export function AskExperience({ recent, voice }: { recent: React.ReactNode; voice: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const { answers, ask } = useAsk();
   const busy = answers[0]?.status === "thinking" || answers[0]?.status === "streaming";
 
-  // True once a question has been asked on this visit, so the ?q= in the URL isn't asked again.
-  const asked = useRef(false);
+  // The last question asked on this visit. A ?q= that differs from it (⌘K while already
+  // here, Back/Forward) is asked; the same one (after submit() rewrote the URL) isn't.
+  const lastAsked = useRef<string | null>(null);
 
   const submit = (q: string) => {
-    asked.current = true;
+    lastAsked.current = q;
     // Keep the question in the URL so refresh, back and sharing work.
     router.replace(`${pathname}?q=${encodeURIComponent(q)}`, { scroll: false });
     void ask(q);
   };
 
-  // Ask the question from the URL once, when arriving with ?q=. Deferred a tick so
-  // React's dev-mode double mount cancels the timer, not an in-flight request.
+  // Ask the question in the URL when it changes. Deferred a tick so React's dev-mode
+  // double mount cancels the timer, not an in-flight request.
   const q = params.get("q");
   useEffect(() => {
-    if (!q || asked.current) return;
+    if (!q || q === lastAsked.current) return;
     const t = setTimeout(() => {
-      asked.current = true;
+      lastAsked.current = q;
       void ask(q);
     }, 0);
     return () => clearTimeout(t);
@@ -52,7 +53,7 @@ export function AskExperience({ recent }: { recent: React.ReactNode }) {
 
   return (
     <div className="space-y-6">
-      <AskBar onAsk={submit} busy={busy} autoFocus={!q} size="hero" trailing={<MicButton onTranscript={submit} />} />
+      <AskBar onAsk={submit} busy={busy} autoFocus={!q} size="hero" trailing={voice ? <MicButton onTranscript={submit} /> : undefined} />
 
       {answers.length === 0 && !q ? (
         <div className="space-y-8">

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings, listDeadlines } from "@/lib/data";
+import { features } from "@/lib/features";
 import { URGENCY_LABELS } from "@/lib/format";
 import { groupDeadlines } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,16 @@ async function Timeline() {
   await getCurrentUser();
   const [deadlines, settings] = await Promise.all([listDeadlines(), getSettings()]);
   const groups = groupDeadlines(deadlines);
+
+  if (!features().deadlines) {
+    return (
+      <EmptyState
+        icon={CalendarCheck}
+        title="Reminders are coming soon"
+        description="Your due dates, renewals and warranty end dates are already being read from your documents. Soon they'll line up here, with an email before each one."
+      />
+    );
+  }
 
   if (groups.length === 0) {
     return (

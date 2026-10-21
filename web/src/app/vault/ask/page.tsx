@@ -8,6 +8,7 @@ import { AskExperience } from "@/components/ask/ask-experience";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser } from "@/lib/auth";
 import { listAskHistory } from "@/lib/data";
+import { features } from "@/lib/features";
 
 export const metadata: Metadata = { title: "Ask" };
 
@@ -17,6 +18,7 @@ export default function AskPage() {
       <PageHeader title="Ask" description="Answers come only from your documents, with the source to prove it." />
       <Suspense fallback={<Skeleton className="h-14 w-full rounded-2xl" />}>
         <AskExperience
+          voice={features().voice}
           recent={
             <Suspense fallback={null}>
               <RecentQuestions />

@@ -2,6 +2,7 @@ import { BellRing, Download, Mail, Palette, ShieldCheck, TriangleAlert, User } f
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { ComingSoon } from "@/components/app/coming-soon";
 import { PageContainer, PageHeader } from "@/components/app/page";
 import { AllowedSenders, CopyAddress, DeleteAccount, ReminderDays, ThemePicker } from "@/components/settings/settings-forms";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,8 @@ import { signOut } from "@/app/vault/actions";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/data";
 import { isDemoMode } from "@/lib/demo";
+import { features } from "@/lib/features";
+import { PRIVACY } from "@/lib/privacy-copy";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -28,13 +31,21 @@ export default function SettingsPage() {
 
         <Section icon={ShieldCheck} title="Privacy">
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>Files are stored privately and only opened through short-lived links.</li>
-            <li>ID numbers (Aadhaar, PAN, policy numbers) are masked before any AI reads your documents.</li>
-            <li>Your documents are never used to train AI models.</li>
+            <li>{PRIVACY.storage}</li>
+            <li>{PRIVACY.masking}</li>
+            <li>{PRIVACY.original}</li>
           </ul>
-          <Button variant="outline" disabled className="mt-4">
-            <Download /> Download all my data (coming soon)
+          <Button variant="outline" disabled className="mt-4 h-auto min-h-9 whitespace-normal">
+            <Download /> Download my data (soon)
           </Button>
+        </Section>
+
+        <Section icon={TriangleAlert} title="Delete account" tone="danger" description="Erase your account, all documents and reminders. This can't be undone.">
+          {features().deleteAccount ? (
+            <DeleteAccount demo={isDemoMode()} />
+          ) : (
+            <ComingSoon>Until then, you can delete documents one by one from their ⋯ menu.</ComingSoon>
+          )}
         </Section>
       </div>
     </PageContainer>
@@ -45,6 +56,7 @@ async function AccountSettings() {
   const user = await getCurrentUser();
   const settings = await getSettings();
   const demo = isDemoMode();
+  const on = features();
 
   return (
     <>
@@ -60,29 +72,29 @@ async function AccountSettings() {
         </div>
       </Section>
 
-      <Section icon={Mail} title="Forward documents by email" description="Send or forward bills and receipts to this address and they're added to your vault.">
-        {settings.inboundAddress ? (
-          <CopyAddress address={settings.inboundAddress} />
+      <Section icon={Mail} title="Forward documents by email" description="Send or forward bills and receipts to your own vault address and they're added for you.">
+        {on.inbound ? (
+          <>
+            {settings.inboundAddress && <CopyAddress address={settings.inboundAddress} />}
+            <div className="mt-5 space-y-2">
+              <p className="text-sm font-medium">Accepted senders</p>
+              <p className="text-sm text-muted-foreground">
+                Only mail from these addresses is accepted, so nobody else can add files to your vault.
+              </p>
+              <AllowedSenders initial={settings.allowedSenders} />
+            </div>
+          </>
         ) : (
-          <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-            Your forwarding address arrives with email capture (milestone M4).
-          </p>
+          <ComingSoon>You&apos;ll get a private address to forward bills to, accepted only from senders you choose.</ComingSoon>
         )}
-        <div className="mt-5 space-y-2">
-          <p className="text-sm font-medium">Accepted senders</p>
-          <p className="text-sm text-muted-foreground">
-            Only mail from these addresses is accepted, so nobody else can add files to your vault.
-          </p>
-          <AllowedSenders initial={settings.allowedSenders} />
-        </div>
       </Section>
 
       <Section icon={BellRing} title="Reminders" description="Email me this long before a warranty ends, a policy renews or a bill is due.">
-        <ReminderDays initial={settings.reminderDays} />
-      </Section>
-
-      <Section icon={TriangleAlert} title="Delete account" tone="danger" description="Erase your account, all documents and reminders. This can't be undone.">
-        <DeleteAccount demo={demo} />
+        {on.reminderSettings ? (
+          <ReminderDays initial={settings.reminderDays} />
+        ) : (
+          <ComingSoon>Email reminders before due dates. You&apos;ll choose how early here.</ComingSoon>
+        )}
       </Section>
     </>
   );

@@ -108,7 +108,7 @@ export function DocumentWorkspace({ doc, deadlines }: { doc: DocumentDetail; dea
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0">
           {doc.pages.length > 0 ? (
             <PageViewer pages={doc.pages} page={page} onPageChange={setPage} highlight={highlight} title={doc.title} />

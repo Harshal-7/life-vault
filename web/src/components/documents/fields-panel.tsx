@@ -15,6 +15,7 @@ import { deadlineLabel } from "@/lib/doc-meta";
 import { fieldLabel, fieldsFor, LOW_CONFIDENCE } from "@/lib/field-labels";
 import { daysUntil, formatDate, formatINR, relativeDays } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { PRIVACY } from "@/lib/privacy-copy";
 
 type Draft = Record<FieldKey, string>;
 
@@ -256,7 +257,7 @@ export function FieldsPanel({
 
       {doc.status === "ready" && (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <ShieldCheck className="size-3.5" /> Stored privately. ID numbers are masked before any AI reads them.
+          <ShieldCheck className="size-3.5 shrink-0" /> {PRIVACY.short}
         </p>
       )}
     </div>

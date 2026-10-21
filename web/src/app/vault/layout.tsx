@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/app/bottom-nav";
 import { Sidebar } from "@/components/app/sidebar";
 import { TopBar } from "@/components/app/top-bar";
 import { UploadSheet } from "@/components/upload/upload-sheet";
+import { features } from "@/lib/features";
 
 /**
  * The signed-in app frame. Static, so it paints instantly; only the account menu
@@ -38,7 +39,7 @@ export default function VaultLayout({ children }: LayoutProps<"/vault">) {
       </div>
       {/* Opens on ?upload=1 from any page. Reads the URL, so it needs a boundary. */}
       <Suspense fallback={null}>
-        <UploadSheet />
+        <UploadSheet inbound={features().inbound} />
       </Suspense>
     </AskCommandProvider>
   );

@@ -1,14 +1,15 @@
-import { BellRing, Camera, FileSearch, LockKeyhole, Mail, Mic, ShieldCheck } from "lucide-react";
+import { BellRing, Camera, FileSearch, FileText, LockKeyhole, Mic, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { PRIVACY } from "@/lib/privacy-copy";
 
-const FEATURES = [
+const FEATURES: { icon: typeof Camera; title: string; body: string; soon?: boolean }[] = [
   {
     icon: Camera,
     title: "Add it in seconds",
-    body: "Snap a receipt, drop a PDF, or forward the email a bill came in. We read it and file it for you.",
+    body: "Snap a receipt or drop a PDF. We read it, pull out the dates and amounts, and file it for you.",
   },
   {
     icon: FileSearch,
@@ -19,11 +20,13 @@ const FEATURES = [
     icon: BellRing,
     title: "Never miss a date",
     body: "Warranties, policy renewals, rent agreements and bills get reminders before they're due.",
+    soon: true,
   },
   {
     icon: Mic,
     title: "Just say it",
     body: "Tap the mic and ask out loud, standing at the service counter or on the phone with an insurer.",
+    soon: true,
   },
 ];
 
@@ -31,22 +34,25 @@ export default function Landing() {
   return (
     <div className="flex flex-1 flex-col">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 md:px-8">
-        <Logo />
+        <Logo className="whitespace-nowrap" />
         <nav className="flex items-center gap-2">
-          <Button asChild variant="ghost">
+          {/* The hero has the same two links; on small phones the header keeps only one. */}
+          <Button asChild variant="ghost" className="hidden sm:inline-flex">
             <Link href="/login">Sign in</Link>
           </Button>
           <Button asChild>
-            <Link href="/vault">Open your vault</Link>
+            <Link href="/vault">Get started</Link>
           </Button>
         </nav>
       </header>
 
-      <main className="flex-1">
+      {/* clip, not hidden: the preview's glow bleeds past the edge on phones, and clip
+          doesn't create a scroll container. */}
+      <main className="flex-1 overflow-x-clip">
         <section className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 pt-10 pb-16 md:grid-cols-[1.1fr_1fr] md:px-8 md:pt-20 md:pb-24">
           <div>
             <p className="mb-4 inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground">
-              <ShieldCheck className="size-3.5 text-primary" /> Private by design. ID numbers are masked.
+              <ShieldCheck className="size-3.5 text-primary" /> {PRIVACY.badge}
             </p>
             <h1 className="text-4xl leading-[1.1] font-semibold tracking-tight md:text-6xl">
               Ask your paperwork <span className="text-primary">anything.</span>
@@ -57,10 +63,10 @@ export default function Landing() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg" className="h-11 px-5 text-base">
-                <Link href="/vault">Open your vault</Link>
+                <Link href="/vault">Get started</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="h-11 px-5 text-base">
-                <Link href="/login">Sign in with email</Link>
+                <a href="#how-it-works">See how it works</a>
               </Button>
             </div>
           </div>
@@ -68,14 +74,19 @@ export default function Landing() {
           <AnswerPreview />
         </section>
 
-        <section className="border-t bg-muted/40">
+        <section id="how-it-works" className="scroll-mt-4 border-t bg-muted/40">
           <div className="mx-auto grid w-full max-w-6xl gap-4 px-4 py-16 sm:grid-cols-2 md:px-8 lg:grid-cols-4">
             {FEATURES.map((f) => (
               <div key={f.title} className="rounded-2xl border bg-card p-5">
                 <span className="mb-4 flex size-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
                   <f.icon className="size-5" />
                 </span>
-                <h2 className="font-medium">{f.title}</h2>
+                <h2 className="flex items-center gap-2 font-medium">
+                  {f.title}
+                  {f.soon && (
+                    <span className="rounded-full border px-2 py-0.5 text-xs font-normal text-muted-foreground">Soon</span>
+                  )}
+                </h2>
                 <p className="mt-1.5 text-sm text-muted-foreground">{f.body}</p>
               </div>
             ))}
@@ -89,16 +100,13 @@ export default function Landing() {
             </div>
             <ul className="space-y-3 text-sm text-muted-foreground md:col-span-2">
               <li className="flex gap-3">
-                <LockKeyhole className="mt-0.5 size-4 shrink-0 text-primary" /> Files are stored privately and only opened
-                through short-lived links.
+                <LockKeyhole className="mt-0.5 size-4 shrink-0 text-primary" /> {PRIVACY.storage}
               </li>
               <li className="flex gap-3">
-                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" /> Aadhaar, PAN and policy numbers are masked
-                before any AI reads a document.
+                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" /> {PRIVACY.masking}
               </li>
               <li className="flex gap-3">
-                <Mail className="mt-0.5 size-4 shrink-0 text-primary" /> Forwarded email is only accepted from addresses you
-                approve.
+                <FileText className="mt-0.5 size-4 shrink-0 text-primary" /> {PRIVACY.original}
               </li>
             </ul>
           </div>

@@ -7,13 +7,13 @@ import { MicButton } from "@/components/ask/mic-button";
 import { STARTER_QUESTIONS } from "@/lib/starter-questions";
 
 /** Home's ask box: typing or speaking takes you to the Ask page with the answer streaming. */
-export function HomeAsk() {
+export function HomeAsk({ voice }: { voice: boolean }) {
   const router = useRouter();
   const go = (q: string) => router.push(`/vault/ask?q=${encodeURIComponent(q)}`);
 
   return (
     <div className="space-y-3">
-      <AskBar onAsk={go} size="hero" placeholder="Ask anything, e.g. when does my rent agreement end?" trailing={<MicButton onTranscript={go} />} />
+      <AskBar onAsk={go} size="hero" placeholder="Ask anything, e.g. when does my rent agreement end?" trailing={voice ? <MicButton onTranscript={go} /> : undefined} />
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0">
         {STARTER_QUESTIONS.slice(0, 3).map((q) => (
           <button
