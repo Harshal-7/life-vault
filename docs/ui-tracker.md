@@ -42,6 +42,12 @@ option; change any of them later. **Cost to change:** S = under an hour, M = hal
 | 33 | Email | Auth emails sent through **Brevo SMTP (free, 300/day) with a Gmail sender** | Own domain + Brevo, Gmail SMTP | Free and no domain needed; may hit spam until we add a domain | S (swap sender) |
 | 34 | AI | **Gemini is the primary AI** (`LLM_PROVIDER=gemini`), Claude built in as the alternative; on a **free-tier key, dev and prod**. Each document records `read_by` | Claude only; Gemini paid | Free to test. Free-tier data may be used by Google: **don't upload real sensitive documents until prod is paid**. To go paid: turn on billing in the Google project (same key) or `fly secrets set LLM_PROVIDER=claude ANTHROPIC_API_KEY=…` | S (one setting) |
 | 35 | AI | Gemini **Flash-Lite reads photos too** (`gemini-3.5-flash-lite` for both jobs) | `gemini-3.8-flash` for photos | Free tier allows only 20 Flash requests/day; Flash-Lite got every eval photo right and is ~2x faster. Set `GEMINI_SMART_MODEL=gemini-3.8-flash` on a paid key or if real receipts read badly | S |
+| 36 | Ask | The AI router sees a **short numbered list of your documents** (type · title · vendor · key date, up to 150) | Router sees only the question | Lets it map "fridge" to the Coolwave warranty and pick candidates; costs a few hundred tokens | S |
+| 37 | Ask | **Clickable [n] citations** in answers, linking to the page with the highlight; source cards numbered to match | Plain text answers | Every claim can be checked in one tap | S |
+| 38 | Ask | Answers in **the language of the question** (English, Hinglish, Hindi) | Always English | Matches how people in India actually ask | S |
+| 39 | Ask | **Not found** when no fact and no passage scores ≥ 0.3 on the reranker; fast-path fact cards need ≥ 0.5 | Always answer | A clear "not in your documents" beats a confident guess; thresholds tuned with the Ask eval | S |
+| 40 | Ask | **Fast path:** date/reference questions (rules spot the field) skip the AI router; other questions run the router alongside search; amounts always go to the router | Router on every question | Free-tier Gemini calls take ~5 s each; this saves one call on the commonest questions. "How much is the deposit?" isn't the document's main amount, hence amounts via the router | M |
+| 41 | AI | **Voyage needs a payment method** on file (still $0 within the 200M free tokens): without one it allows 3 requests/minute | Gemini embeddings | 3/min means ~1 question a minute; set a usage cap in Voyage's billing page | — |
 
 ## Testing notes
 
@@ -62,8 +68,8 @@ Search the code for `TODO(api)` to find each spot.
 | `updateDocument(id, patch)` | `PATCH /documents/{id}` (title, type, tags) | ✅ M1 |
 | `deleteDocument(id)` | `DELETE /documents/{id}` (file + page images) | ✅ M0 |
 | `listDeadlines()` / `setReminder()` | `GET /deadlines`, `PATCH /deadlines/{id}` | M3 |
-| `/api/ask` route (SSE) | proxy `POST /ask` (SSE) | M2 |
-| `listAskHistory()` / `sendFeedback()` | `GET /asks`, `POST /asks/{id}/feedback` | M2 |
+| `/api/ask` route (SSE) | proxy `POST /ask` (SSE) | ✅ M2 |
+| `listAskHistory()` / `sendFeedback()` | `GET /asks`, `POST /asks/{id}/feedback` | ✅ M2 |
 | `/api/transcribe` route | proxy `POST /ask/voice` | M5 |
 | `getSettings()` / `saveSettings()` | `GET/PATCH /settings` | M4 |
 | `/demo-pages/[id]/[n]` | page images from Storage (signed URLs); demo pages stay for demo mode | ✅ M1 |

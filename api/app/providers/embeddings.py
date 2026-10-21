@@ -13,6 +13,7 @@ from app.config import get_settings
 
 API = "https://api.voyageai.com/v1"
 BATCH = 128  # inputs per embeddings request (Voyage allows 1000; smaller = gentler)
+ATTEMPTS = 4
 
 InputType = Literal["document", "query"]
 
@@ -38,12 +39,12 @@ class VoyageEmbedder:
 
     async def _post(self, path: str, body: dict) -> dict:
         async with httpx.AsyncClient(base_url=API, headers=self.headers, timeout=60) as c:
-            for attempt in range(3):
+            for attempt in range(ATTEMPTS):
                 r = await c.post(path, json=body)
                 if r.status_code != 429 and r.status_code < 500:
                     break
-                if attempt < 2:  # rate limited or a Voyage hiccup: back off and retry
-                    await asyncio.sleep(2**attempt)
+                if attempt < ATTEMPTS - 1:  # rate limited or a Voyage hiccup: wait, retry
+                    await asyncio.sleep(_wait(r, attempt))
         if r.status_code != 200:
             raise EmbeddingsError(f"voyage {path} failed: {r.status_code} {r.text[:200]}")
         data = r.json()
@@ -75,3 +76,13 @@ class VoyageEmbedder:
 
 def _index(item: dict) -> int:
     return item["index"]
+
+
+def _wait(response: httpx.Response, attempt: int) -> float:
+    """Seconds before retrying: Voyage's Retry-After if it sends one, else 2, 4, 8 s
+    (rate limits get longer waits: 5, 10, 20 s, since limits reset per minute)."""
+    try:
+        return min(float(response.headers["retry-after"]), 30.0)
+    except (KeyError, ValueError):
+        base = 5 if response.status_code == 429 else 2
+        return base * 2**attempt

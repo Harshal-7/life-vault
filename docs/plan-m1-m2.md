@@ -1,5 +1,7 @@
 # Life Vault — plan for Free email (SMTP), M1 (reading documents) and M2 (Ask)
 
+> Status 2026-10-22: M1 and M2 built. As built, Ask differs from the sketch below in two ways: a fast path skips the AI router for date/reference questions (tracker #40), and Gemini is the default provider (#34). See `api/app/ask/` and the README eval tables.
+
 ## Context
 M0 is live: login, upload to private storage, a worker that marks files "ready", the full UI, Fly (Singapore) + Vercel. The worker is still a stub. Nothing actually *reads* documents yet, and Ask returns "arrives in M2".
 
