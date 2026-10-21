@@ -72,6 +72,12 @@ cd api && uv run pytest
 |---|---|---|---|---|---|
 | 2026-10-22 | Gemini (`gemini-3.5-flash-lite` for text and photos, free tier) | 57/58 (98%) | 46/46 | 3.8 | none |
 
+`cd api && uv run python -m evals.ask` builds a vault from the same 12 documents (in a database transaction that is rolled back) and asks 30 questions: dates, amounts, reference numbers, questions answered by the text, a total across bills, Hinglish, and 4 about things that aren't in the vault.
+
+| Date | Provider (AI · search) | Right answer | Right document in sources | Fact card | "Not found" when missing | First word p50 / p95 |
+|---|---|---|---|---|---|---|
+| 2026-10-22 | Gemini `gemini-3.5-flash-lite` · Gemini embeddings, no reranker (free tier) | 26/26 (100%) | 26/26, MRR 1.00 | 11/12 | 4/4, 0 false | 1.9 s / 2.7 s |
+
 Caveats: 12 clean fictional documents is a small, friendly test. The one miss (a pharmacy receipt filed as "receipt" instead of "medical") varies between runs, and real crumpled receipts and Hindi script need private samples in `evals/private/`.
 
 ## Privacy

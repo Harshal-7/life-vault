@@ -75,9 +75,9 @@ async def ask(
     field = field if field in FAST_FIELDS and not period else None
     by_n = {d.n: d for d in docs}
     by_id = {d.id: d for d in docs}
-    router = None
-    if not field:
-        router = asyncio.create_task(
+
+    def start_router() -> asyncio.Task:
+        return asyncio.create_task(
             ai.structured(
                 prompts.ROUTER_PROMPT,
                 prompts.router_input(question, str(today), vault_list(docs)),
@@ -85,14 +85,28 @@ async def ask(
             )
         )
 
+    router = None if field else start_router()
     titles = {d.id: d.title for d in docs}
     hits = await search(session, user_id, embedder, question, question, titles)
     timer.mark("search")
-    # Relevance cutoffs depend on the embedder (reranker score vs cosine similarity).
-    # The fast path shows a fact card without asking the AI, so it needs a surer
-    # match: "car insurance" must not pick up the health policy's renewal date.
-    floor, sure_floor = embedder.min_relevance, embedder.sure_relevance
-    hit_docs = _unique(by_id[h.document_id] for h in hits if h.relevance >= floor)
+
+    # Two relevance bars, on the embedder's own scale (reranker score, or cosine
+    # similarity without one). At or above `sure` a passage is clearly on topic, and
+    # a fact card may skip the AI. Between `floor` and `sure` it only counts if the AI
+    # router names its document: plain similarity can't tell "car insurance" from the
+    # health policy on its own (tracker #39).
+    floor, sure = embedder.min_relevance, embedder.sure_relevance
+    sure_docs = _unique(by_id[h.document_id] for h in hits if h.relevance >= sure)
+
+    fact: Fact | None = None
+    rows: list[Fact] = []
+    route = "both"
+    if field:
+        fact = first_fact(field, sure_docs, today)
+        if fact:
+            route = "field_lookup"
+        else:
+            router = start_router()  # not clear enough: ask the router after all
 
     plan = None
     if router:
@@ -102,18 +116,13 @@ async def ask(
             log.exception("router failed; answering from search alone")
         timer.mark("router")
 
-    fact: Fact | None = None
-    rows: list[Fact] = []
-    if plan is None:
-        route = "field_lookup" if field else "content_search"
-        if field:
-            sure = _unique(by_id[h.document_id] for h in hits if h.relevance >= sure_floor)
-            fact = first_fact(field, sure, today)
-            # The rules saw a field but the top documents don't have it: search text.
-            route = "field_lookup" if fact else "both"
-    else:
+    named: set[uuid.UUID] = set()
+    if plan:
         route = plan.route
-        if plan.field and plan.route != "content_search":
+        named = {by_n[n].id for n in plan.candidates if n in by_n}
+        # A field from the router counts even on a "content" route: "what is my premium?"
+        # is often planned as text search, but the premium is a stored field.
+        if plan.field and not fact:
             if plan.date_from or plan.date_to:
                 rows = matching_rows(
                     plan.field,
@@ -124,12 +133,24 @@ async def ask(
                     _date(plan.date_to),
                 )
             else:
-                candidates = _unique([by_n[n] for n in plan.candidates if n in by_n] + hit_docs)
+                candidates = _unique([by_n[n] for n in plan.candidates if n in by_n] + sure_docs)
                 fact = first_fact(plan.field, candidates, today)
         if plan.search_query and plan.route != "field_lookup" and not hits:
             hits = await search(session, user_id, embedder, plan.search_query, question, titles)
+    elif router:
+        route = "content_search"  # the router failed: fall back to plain search
 
-    passages = [h for h in hits if h.relevance >= floor][:4]
+    def counts(h: Hit) -> bool:
+        if h.relevance >= sure:
+            return True
+        if h.relevance < floor:
+            return False
+        if plan:
+            return h.document_id in named
+        # No AI judgement: only the fact's own document, or anything when the router failed.
+        return h.document_id == fact.doc.id if fact else True
+
+    passages = [h for h in hits if counts(h)][:4]
     record.route = route
     yield {"type": "route", "route": route}
     timer.mark("first_event")

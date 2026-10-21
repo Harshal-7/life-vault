@@ -100,7 +100,9 @@ class GeminiEmbedder:
     provider = "gemini"
     can_rerank = False
     # Cosine similarity of the question to a passage (gemini-embedding-001, 1024 dims).
-    min_relevance = 0.62
+    # Ask eval: right documents scored 0.61-0.75, questions not in the vault up to 0.61,
+    # so the band between these bars is left to the AI router.
+    min_relevance = 0.55
     sure_relevance = 0.68
 
     def __init__(self, client=None):
