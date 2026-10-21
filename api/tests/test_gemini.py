@@ -6,7 +6,14 @@ import pytest
 from google.genai import types
 
 from app.config import get_settings
+from app.db.models import EMBEDDING_DIMS
 from app.providers import llm
+from app.providers.embeddings import (
+    GeminiEmbedder,
+    VoyageEmbedder,
+    embeddings_configured,
+    get_embedder,
+)
 from app.providers.gemini import GeminiLine, GeminiReader, GeminiTranscription, to_seen_line
 from app.providers.llm import ClaudeReader, Extraction, FieldValue
 
@@ -108,3 +115,42 @@ def test_provider_switch(monkeypatch):
     monkeypatch.setattr(settings, "anthropic_api_key", "")
     assert isinstance(llm.get_reader(), ClaudeReader)
     assert not llm.reader_configured()  # the Gemini key doesn't count for Claude
+
+
+# --- Embeddings ---
+
+
+class FakeEmbedModels:
+    def __init__(self):
+        self.calls = []
+
+    async def embed_content(self, *, model, contents, config):
+        self.calls.append({"model": model, "contents": contents, "config": config})
+        return SimpleNamespace(embeddings=[SimpleNamespace(values=[0.1] * 4) for _ in contents])
+
+
+async def test_gemini_embeddings_batch_and_tag_queries():
+    models = FakeEmbedModels()
+    embedder = GeminiEmbedder(client=SimpleNamespace(aio=SimpleNamespace(models=models)))
+
+    vectors = await embedder.embed([f"passage {i}" for i in range(150)], "document")
+    assert len(vectors) == 150
+    assert [len(c["contents"]) for c in models.calls] == [100, 50]  # batches of 100
+    assert models.calls[0]["config"].task_type == "RETRIEVAL_DOCUMENT"
+    assert models.calls[0]["config"].output_dimensionality == EMBEDDING_DIMS
+
+    await embedder.embed(["when is my bill due?"], "query")
+    assert models.calls[-1]["config"].task_type == "RETRIEVAL_QUERY"
+    assert not embedder.can_rerank
+
+
+def test_embeddings_switch(monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "embeddings_provider", "gemini")
+    monkeypatch.setattr(settings, "gemini_api_key", "")
+    assert isinstance(get_embedder(), GeminiEmbedder) and not embeddings_configured()
+    monkeypatch.setattr(settings, "gemini_api_key", "k")
+    assert embeddings_configured()
+    monkeypatch.setattr(settings, "embeddings_provider", "voyage")
+    monkeypatch.setattr(settings, "embeddings_api_key", "")
+    assert isinstance(get_embedder(), VoyageEmbedder) and not embeddings_configured()

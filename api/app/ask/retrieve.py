@@ -1,7 +1,8 @@
 """Hybrid search over the person's chunks: meaning (pgvector) + words (Postgres
-keyword index), merged with Reciprocal Rank Fusion, then re-sorted by Voyage's
-reranker, which reads question and passage together and is much more precise than
-either list alone.
+keyword index), merged with Reciprocal Rank Fusion. With Voyage, a reranker then reads
+question and passage together and re-sorts them (more precise than either list).
+Without one (Gemini embeddings), the fused order stands and a passage's relevance is
+its cosine similarity to the question.
 
 Every query filters by user_id: one person's passages can never reach another's answer.
 """
@@ -9,7 +10,7 @@ Every query filters by user_id: one person's passages can never reach another's 
 import uuid
 from dataclasses import dataclass
 
-from sqlalchemy import func, select, text
+from sqlalchemy import Float, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ask.rules import keyword_terms
@@ -54,16 +55,23 @@ async def search(
     else the question; Voyage is multilingual either way); `question` is what the
     reranker judges against. `titles` labels each passage for the reranker."""
     [vector] = await embedder.embed([query], "query")
-    cols = (Chunk.id, Chunk.document_id, Chunk.page_no, Chunk.content, Chunk.box)
+    # Cosine distance (= 1 - similarity). return_type: the result is a number, not a vector.
+    distance = Chunk.embedding.op("<=>", return_type=Float)(vector)
+    cols = (
+        Chunk.id,
+        Chunk.document_id,
+        Chunk.page_no,
+        Chunk.content,
+        Chunk.box,
+        distance.label("distance"),
+    )
     mine = Chunk.user_id == user_id
 
     # With a filter, an HNSW index may stop early and return too few rows; this lets
     # it keep scanning until it has enough matching ones (pgvector 0.8).
     await session.execute(text("SET LOCAL hnsw.iterative_scan = relaxed_order"))
     by_meaning = (
-        await session.execute(
-            select(*cols).where(mine).order_by(Chunk.embedding.op("<=>")(vector)).limit(PER_LIST)
-        )
+        await session.execute(select(*cols).where(mine).order_by(distance).limit(PER_LIST))
     ).all()
 
     by_words = []
@@ -83,6 +91,12 @@ async def search(
     pool = rrf([r.id for r in by_meaning], [r.id for r in by_words])[:RERANK_POOL]
     if not pool:
         return []
+    if not embedder.can_rerank:
+        return [
+            Hit(r.id, r.document_id, r.page_no, r.content, r.box, round(1 - r.distance, 3))
+            for i in pool[:top_k]
+            for r in [rows[i]]
+        ]
     passages = [f"{titles.get(rows[i].document_id, '')}\n{rows[i].content}" for i in pool]
     ranked = await embedder.rerank(question, passages, top_k=min(top_k, len(pool)))
     return [

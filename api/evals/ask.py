@@ -30,7 +30,7 @@ from app.pipeline.chunk import chunk_pages, embedding_header
 from app.pipeline.read import read_file
 from app.pipeline.run import ReadResult, read_by_label, save_result, understand
 from app.providers import storage
-from app.providers.embeddings import VoyageEmbedder
+from app.providers.embeddings import get_embedder
 from evals.ask_cases import QUESTIONS, TODAY, Q
 from evals.cases import CASES
 from evals.extract import make_file, readers
@@ -135,7 +135,10 @@ def p(values: list[float], q: float) -> float:
 def report(provider: str, reader, results: list[dict]) -> dict:
     answerable = [r for r in results if r["hit"] is not None]
     missing = [r for r in results if r["kind"] == "missing"]
-    print(f"\n=== Ask · {provider}: {reader.fast_model} / {reader.smart_model} ===")
+    print(
+        f"\n=== Ask · {provider}: {reader.fast_model} / {reader.smart_model}"
+        f" · search: {get_settings().embeddings_provider} ==="
+    )
 
     def scored(key):
         return [r[key] for r in results if r[key] is not None]
@@ -175,6 +178,7 @@ def report(provider: str, reader, results: list[dict]) -> dict:
     return {
         "provider": provider,
         "models": [reader.fast_model, reader.smart_model],
+        "embeddings": get_settings().embeddings_provider,
         "date": str(date.today()),
         "usage": reader.usage.by_model,
         "questions": results,
@@ -192,7 +196,7 @@ async def main() -> None:
         return {}  # eval pages aren't in Storage
 
     storage.signed_urls = no_urls
-    embedder = VoyageEmbedder()
+    embedder = get_embedder()  # EMBEDDINGS_PROVIDER: gemini (default) or voyage
     RESULTS.mkdir(exist_ok=True)
 
     for provider, reader in readers(args.provider):

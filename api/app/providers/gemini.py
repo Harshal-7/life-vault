@@ -35,6 +35,13 @@ RETRY = types.HttpRetryOptions(
 )
 
 
+def make_client() -> genai.Client:
+    return genai.Client(
+        api_key=get_settings().gemini_api_key,
+        http_options=types.HttpOptions(retry_options=RETRY, timeout=120_000),  # ms
+    )
+
+
 class GeminiLine(BaseModel):
     text: str
     box_2d: list[int] = Field(description="[ymin, xmin, ymax, xmax], each 0-1000")
@@ -80,10 +87,7 @@ class GeminiReader:
         # Created on first use: genai.Client refuses to start without a key, and the
         # worker must still boot (and say "not set up yet") when the key is missing.
         if self._client is None:
-            self._client = genai.Client(
-                api_key=get_settings().gemini_api_key,
-                http_options=types.HttpOptions(retry_options=RETRY, timeout=120_000),  # ms
-            )
+            self._client = make_client()
         return self._client
 
     async def transcribe(self, image_jpeg: bytes) -> Transcription:

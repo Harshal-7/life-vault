@@ -47,6 +47,8 @@ class FakeReader:
 
 
 class FakeEmbedder:
+    provider, can_rerank, min_relevance, sure_relevance = "fake", True, 0.3, 0.5
+
     async def embed(self, texts, input_type):
         return [[1.0] + [0.0] * (EMBEDDING_DIMS - 1) for _ in texts]
 

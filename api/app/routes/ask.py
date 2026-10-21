@@ -15,7 +15,8 @@ from app.ask.service import ask
 from app.auth import CurrentUser, DbSession
 from app.config import get_settings
 from app.db.models import Ask
-from app.providers.embeddings import Embedder, VoyageEmbedder
+from app.providers import embeddings
+from app.providers.embeddings import Embedder
 from app.providers.llm import Reader, get_reader, reader_configured
 from app.schemas import CamelModel
 
@@ -27,7 +28,7 @@ def get_ai() -> Reader:
 
 
 def get_embedder() -> Embedder:
-    return VoyageEmbedder()
+    return embeddings.get_embedder()
 
 
 class AskIn(BaseModel):
@@ -59,7 +60,7 @@ async def ask_question(
     embedder: Annotated[Embedder, Depends(get_embedder)],
 ):
     question = " ".join(body.question.split())[:500]
-    if not (reader_configured() and get_settings().embeddings_api_key):
+    if not (reader_configured() and embeddings.embeddings_configured()):
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE, "Ask isn't set up on this server yet."
         )

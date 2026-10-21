@@ -31,10 +31,6 @@ from app.providers.llm import Reader
 
 log = logging.getLogger(__name__)
 
-MIN_RELEVANCE = 0.3  # reranker score below which a passage doesn't count (tracker #39)
-# The fast path shows a fact card without asking the AI, so it needs a surer match:
-# "car insurance" must not pick up the health policy's renewal date.
-FAST_MIN_RELEVANCE = 0.5
 ROUTER_TIMEOUT = 25  # seconds; on timeout we carry on as a plain content search
 NOT_FOUND = (
     "I couldn't find this in your documents. If it's in one you haven't added yet, "
@@ -92,7 +88,11 @@ async def ask(
     titles = {d.id: d.title for d in docs}
     hits = await search(session, user_id, embedder, question, question, titles)
     timer.mark("search")
-    hit_docs = _unique(by_id[h.document_id] for h in hits if h.relevance >= MIN_RELEVANCE)
+    # Relevance cutoffs depend on the embedder (reranker score vs cosine similarity).
+    # The fast path shows a fact card without asking the AI, so it needs a surer
+    # match: "car insurance" must not pick up the health policy's renewal date.
+    floor, sure_floor = embedder.min_relevance, embedder.sure_relevance
+    hit_docs = _unique(by_id[h.document_id] for h in hits if h.relevance >= floor)
 
     plan = None
     if router:
@@ -107,7 +107,7 @@ async def ask(
     if plan is None:
         route = "field_lookup" if field else "content_search"
         if field:
-            sure = _unique(by_id[h.document_id] for h in hits if h.relevance >= FAST_MIN_RELEVANCE)
+            sure = _unique(by_id[h.document_id] for h in hits if h.relevance >= sure_floor)
             fact = first_fact(field, sure, today)
             # The rules saw a field but the top documents don't have it: search text.
             route = "field_lookup" if fact else "both"
@@ -129,7 +129,7 @@ async def ask(
         if plan.search_query and plan.route != "field_lookup" and not hits:
             hits = await search(session, user_id, embedder, plan.search_query, question, titles)
 
-    passages = [h for h in hits if h.relevance >= MIN_RELEVANCE][:4]
+    passages = [h for h in hits if h.relevance >= floor][:4]
     record.route = route
     yield {"type": "route", "route": route}
     timer.mark("first_event")

@@ -11,7 +11,7 @@ Ask your paperwork anything. Upload or forward bills, receipts, warranties, insu
 | Web (PWA) | Next.js, Tailwind, shadcn/ui, hosted on Vercel |
 | API + worker | FastAPI, arq (Redis queue), hosted on Fly.io (Singapore) |
 | Data | Supabase: Postgres + pgvector, Auth, private Storage |
-| AI | Gemini or Claude, switched by `LLM_PROVIDER` (reading photos, extracting fields, answers); Voyage multilingual embeddings + reranker |
+| AI | Gemini or Claude, switched by `LLM_PROVIDER` (reading photos, extracting fields, answers); search embeddings from Gemini (free) or Voyage with its reranker, switched by `EMBEDDINGS_PROVIDER` |
 
 ## Repo layout
 

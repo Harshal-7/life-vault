@@ -80,6 +80,8 @@ def vec(text: str) -> list[float]:
 
 
 class FakeEmbedder:
+    provider, can_rerank, min_relevance, sure_relevance = "fake", True, 0.3, 0.5
+
     async def embed(self, texts, input_type):
         return [vec(t) for t in texts]
 
@@ -345,3 +347,26 @@ async def test_empty_vault(client_for, users, ai_setup):
     r = await client_for(0).post("/ask", json={"question": "When is my bill due?"})
     events = events_of(r)
     assert events[1]["type"] == "not_found" and "vault is empty" in events[1]["suggestion"]
+
+
+class NoRerankEmbedder(FakeEmbedder):
+    """Like Gemini embeddings: no reranker, relevance is cosine similarity."""
+
+    provider, can_rerank, min_relevance, sure_relevance = "fake-gemini", False, 0.6, 0.7
+
+    async def rerank(self, query, documents, top_k):
+        raise AssertionError("must not be called")
+
+
+@needs_db
+async def test_search_without_a_reranker(client_for, users, db, ai_setup):
+    ai_setup(FakeAI())
+    app.dependency_overrides[ask_route.get_embedder] = NoRerankEmbedder
+    await seed(db, users[0], [WARRANTY, BILL])
+
+    r = await client_for(0).post("/ask", json={"question": "When is my electricity bill due?"})
+    events = events_of(r)
+    assert events[1]["type"] == "fact" and events[1]["value"] == "25 Oct 2026"
+
+    r = await client_for(0).post("/ask", json={"question": "When does my car insurance expire?"})
+    assert [e["type"] for e in events_of(r)] == ["route", "not_found", "done"]

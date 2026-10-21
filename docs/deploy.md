@@ -54,10 +54,10 @@ Do **not** set `DEMO_MODE` (it's ignored in production anyway).
 Set them on Fly (never in git), then `fly deploy`:
 
 ```
-fly secrets set -a life-vault-api LLM_PROVIDER=gemini GEMINI_API_KEY=… EMBEDDINGS_API_KEY=…
+fly secrets set -a life-vault-api LLM_PROVIDER=gemini EMBEDDINGS_PROVIDER=gemini GEMINI_API_KEY=…
 ```
 
-`GEMINI_API_KEY` comes from Google AI Studio and `EMBEDDINGS_API_KEY` from Voyage AI. A free-tier Gemini key may let Google use what it reads, so before real personal documents go in, either turn on billing for that Google project (same key, now paid) or switch to Claude:
+`GEMINI_API_KEY` comes from Google AI Studio and covers both reading and search. To use Voyage for search instead (better ranking, needs a payment method on Voyage): `fly secrets set -a life-vault-api EMBEDDINGS_PROVIDER=voyage EMBEDDINGS_API_KEY=…`, then re-embed with `fly ssh console -a life-vault-api -C "python -m app.scripts.reembed"`. A free-tier Gemini key may let Google use what it reads, so before real personal documents go in, either turn on billing for that Google project (same key, now paid) or switch to Claude:
 
 ```
 fly secrets set -a life-vault-api LLM_PROVIDER=claude ANTHROPIC_API_KEY=…

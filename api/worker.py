@@ -16,7 +16,7 @@ from app.db.models import Document
 from app.db.session import SessionLocal
 from app.pipeline.read import ReadError
 from app.pipeline.run import DocInput, read_document, save_result
-from app.providers.embeddings import VoyageEmbedder
+from app.providers.embeddings import embeddings_configured, get_embedder
 from app.providers.llm import get_reader, reader_configured
 from app.queue import queue_name, redis_settings
 
@@ -37,10 +37,11 @@ async def process_document(ctx: dict, document_id: str) -> str:
     settings = get_settings()
     error: str | None = None
     result = None
-    if not (reader_configured() and settings.embeddings_api_key):
+    if not (reader_configured() and embeddings_configured()):
         log.error(
-            "%s key or EMBEDDINGS_API_KEY not set; cannot read %s",
+            "%s or %s key not set; cannot read %s",
             settings.llm_provider,
+            settings.embeddings_provider,
             document_id,
         )
         error = NOT_SET_UP
@@ -80,7 +81,7 @@ async def process_document(ctx: dict, document_id: str) -> str:
 async def startup(ctx: dict) -> None:
     # One client each for the life of the worker, so connections are reused.
     ctx["reader"] = get_reader()  # Claude or Gemini, from LLM_PROVIDER
-    ctx["embedder"] = VoyageEmbedder()
+    ctx["embedder"] = get_embedder()  # Gemini or Voyage, from EMBEDDINGS_PROVIDER
 
 
 class WorkerSettings:

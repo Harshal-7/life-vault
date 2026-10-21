@@ -32,7 +32,10 @@ class Settings(BaseSettings):
 
     gemini_api_key: str = ""
     anthropic_api_key: str = ""
-    # Voyage AI key: embeddings (search by meaning) and the reranker.
+    # Search embeddings: gemini (free, same key; no reranker) or voyage (embeddings +
+    # reranker; needs a payment method on Voyage for usable limits). Tracker #42.
+    embeddings_provider: Literal["gemini", "voyage"] = "gemini"
+    # Voyage AI key, used only when embeddings_provider is voyage.
     embeddings_api_key: str = ""
 
     # Each provider has a fast, cheap model (reading PDF text, routing) and a smarter
@@ -44,6 +47,7 @@ class Settings(BaseSettings):
     gemini_smart_model: str = "gemini-3.5-flash-lite"
     claude_fast_model: str = "claude-haiku-5-5"
     claude_smart_model: str = "claude-sonnet-5-5"
+    gemini_embeddings_model: str = "gemini-embedding-001"
     embeddings_model: str = "voyage-3.5"
     rerank_model: str = "rerank-2.5-lite"
 
