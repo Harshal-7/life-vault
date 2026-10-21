@@ -2,16 +2,16 @@
 
 Ask your paperwork anything. Upload or forward bills, receipts, warranties, insurance policies and rent agreements, then ask questions like *"when does my fridge warranty expire?"* and get an answer with the source document highlighted.
 
-> Status: early development. Backend skeleton (M0) in progress; full UI built on demo data.
+> Status: early development. Live on Vercel + Fly.io; documents are read into page images, fields and searchable chunks (M1). Asking questions (M2) is next.
 
 ## Stack
 
 | Layer | Tech |
 |---|---|
 | Web (PWA) | Next.js, Tailwind, shadcn/ui, hosted on Vercel |
-| API + worker | FastAPI, arq (Redis queue), hosted on Fly.io (Mumbai) |
+| API + worker | FastAPI, arq (Redis queue), hosted on Fly.io (Singapore) |
 | Data | Supabase: Postgres + pgvector, Auth, private Storage |
-| AI | Claude (routing, extraction, answers), hosted multilingual embeddings |
+| AI | Gemini or Claude, switched by `LLM_PROVIDER` (reading photos, extracting fields, answers); Voyage multilingual embeddings + reranker |
 
 ## Repo layout
 
@@ -63,6 +63,16 @@ Decisions made while building the UI, and the list of mock functions to swap for
 cd web && pnpm check   # typecheck, lint, unit tests, production build
 cd api && uv run pytest
 ```
+
+## Evals
+
+`cd api && uv run python -m evals.extract` reads 12 fictional documents (typed PDFs and tilted, blurred "photos", one with an Aadhaar number that must be masked) and scores every extracted field. It runs each provider that has a key (`--provider gemini|claude|both`) and saves results to `api/evals/results/`.
+
+| Date | Provider (models) | Fields right | Highlight box found | Sec/doc | ID numbers leaked |
+|---|---|---|---|---|---|
+| 2026-10-22 | Gemini (`gemini-3.5-flash-lite` for text and photos, free tier) | 57/58 (98%) | 46/46 | 3.8 | none |
+
+Caveats: 12 clean fictional documents is a small, friendly test. The one miss (a pharmacy receipt filed as "receipt" instead of "medical") varies between runs, and real crumpled receipts and Hindi script need private samples in `evals/private/`.
 
 ## Privacy
 

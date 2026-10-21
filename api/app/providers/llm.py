@@ -69,14 +69,22 @@ class Extraction(BaseModel):
 
 
 class Usage(BaseModel):
-    """Tokens spent, so evals can report cost per document."""
+    """Tokens spent per model ([input, output]), so evals can price each model."""
 
-    input_tokens: int = 0
-    output_tokens: int = 0
+    by_model: dict[str, list[int]] = Field(default_factory=dict)
 
-    def add(self, usage) -> None:
-        self.input_tokens += usage.input_tokens
-        self.output_tokens += usage.output_tokens
+    def add(self, model: str, input_tokens: int, output_tokens: int) -> None:
+        counts = self.by_model.setdefault(model, [0, 0])
+        counts[0] += input_tokens
+        counts[1] += output_tokens
+
+    @property
+    def input_tokens(self) -> int:
+        return sum(c[0] for c in self.by_model.values())
+
+    @property
+    def output_tokens(self) -> int:
+        return sum(c[1] for c in self.by_model.values())
 
 
 class Reader(Protocol):
@@ -136,16 +144,22 @@ doc_type, pick one:
 - id: identity documents (passport, licence, Aadhaar, PAN, voter ID)
 - manual: product manual or guide
 - other: anything else
+When two fit, pick the more specific one: a pharmacy, clinic or hospital receipt is \
+medical; a receipt for tax paid (income, property, GST) is tax; receipt is for \
+everyday purchases.
 
 Fields (value null when the document doesn't say):
-- vendor: the company, shop, insurer, landlord or issuing authority
+- vendor: the company, shop, insurer, landlord or issuing authority (for a warranty, \
+the brand or manufacturer, not the dealer that sold it)
 - amount: in rupees, the main figure: total payable for bills, total paid for receipts, \
 premium for insurance, monthly rent for rent agreements
 - doc_date: invoice, bill, purchase, issue or agreement start date
 - expiry_date: when the warranty, policy, agreement or ID ends
 - due_date: last date to pay a bill
-- reference: policy, account, consumer, invoice or ID number, as written (ID numbers \
-are already masked like ●●●● 1234, keep them that way)
+- reference: the number that identifies the account or policy and stays the same over \
+time: policy, account, consumer or customer number. Only use an invoice or receipt \
+number when there is no such number. Copy it as written (ID numbers are already masked \
+like ●●●● 1234, keep them that way)
 
 For each field also give as_printed (the exact characters from the text, so it can be \
 found on the page), the page it is on, and a confidence. If you work a value out rather \
@@ -194,7 +208,7 @@ class ClaudeReader:
             ],
             output_format=Transcription,
         )
-        self.usage.add(msg.usage)
+        self.usage.add(msg.model, msg.usage.input_tokens, msg.usage.output_tokens)
         return msg.parsed_output
 
     async def extract(self, text: str, filename: str) -> Extraction:
@@ -210,7 +224,7 @@ class ClaudeReader:
             ],
             output_format=Extraction,
         )
-        self.usage.add(msg.usage)
+        self.usage.add(msg.model, msg.usage.input_tokens, msg.usage.output_tokens)
         return msg.parsed_output
 
 

@@ -49,4 +49,18 @@ Do **not** set `DEMO_MODE` (it's ignored in production anyway).
 - Supabase prod → Authentication → URL Configuration: Site URL = your Vercel URL; Redirect URLs = `https://<your-app>.vercel.app/**`.
 - Fly: `fly secrets set CORS_ORIGINS='["https://<your-app>.vercel.app"]'`.
 
+## AI keys (M1)
+
+Set them on Fly (never in git), then `fly deploy`:
+
+```
+fly secrets set -a life-vault-api LLM_PROVIDER=gemini GEMINI_API_KEY=… EMBEDDINGS_API_KEY=…
+```
+
+`GEMINI_API_KEY` comes from Google AI Studio and `EMBEDDINGS_API_KEY` from Voyage AI. A free-tier Gemini key may let Google use what it reads, so before real personal documents go in, either turn on billing for that Google project (same key, now paid) or switch to Claude:
+
+```
+fly secrets set -a life-vault-api LLM_PROVIDER=claude ANTHROPIC_API_KEY=…
+```
+
 Every push to `main` then redeploys the web app automatically; the API redeploys with `fly deploy`.

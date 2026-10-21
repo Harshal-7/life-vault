@@ -38,7 +38,10 @@ class Settings(BaseSettings):
     # Each provider has a fast, cheap model (reading PDF text, routing) and a smarter
     # one (reading photos, writing answers).
     gemini_fast_model: str = "gemini-3.5-flash-lite"
-    gemini_smart_model: str = "gemini-3.8-flash"
+    # Flash-Lite for photos too while on the free tier: gemini-3.8-flash allows only 20
+    # requests a day there, and Flash-Lite read every eval photo correctly. On a paid
+    # key, or if real receipts read badly, set GEMINI_SMART_MODEL=gemini-3.8-flash.
+    gemini_smart_model: str = "gemini-3.5-flash-lite"
     claude_fast_model: str = "claude-haiku-5-5"
     claude_smart_model: str = "claude-sonnet-5-5"
     embeddings_model: str = "voyage-3.5"

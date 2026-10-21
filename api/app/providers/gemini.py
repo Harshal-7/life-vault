@@ -6,8 +6,8 @@ Differences worth knowing:
   0-1000 scale, so we ask for exactly that and convert to the % boxes the pipeline uses.
 - The free tier allows only a few requests a minute: the SDK retries 429s with
   backoff, and pages are read one at a time.
-- Thinking is kept minimal: extraction is a lookup, not a puzzle, and thinking tokens
-  cost time (and money on a paid key).
+- Thinking is kept low: extraction is a lookup, not a puzzle, and thinking tokens cost
+  time (and money on a paid key). Flash-Lite allows MINIMAL; Flash's lowest is LOW.
 """
 
 from google import genai
@@ -88,9 +88,14 @@ class GeminiReader:
                 types.Part.from_bytes(data=image_jpeg, mime_type="image/jpeg"),
                 "Transcribe this page.",
             ],
-            config=self._config(GEMINI_TRANSCRIBE_PROMPT, GeminiTranscription, max_tokens=8000),
+            config=self._config(
+                GEMINI_TRANSCRIBE_PROMPT,
+                GeminiTranscription,
+                max_tokens=8000,
+                thinking=types.ThinkingLevel.LOW,
+            ),
         )
-        self._count(response)
+        self._count(self.smart_model, response)
         seen: GeminiTranscription = _parsed(response)
         return Transcription(readable=seen.readable, lines=[to_seen_line(x) for x in seen.lines])
 
@@ -98,26 +103,28 @@ class GeminiReader:
         response = await self.client.aio.models.generate_content(
             model=self.fast_model,
             contents=f"File name: {filename}\n<document>\n{text}\n</document>",
-            config=self._config(EXTRACT_PROMPT, Extraction, max_tokens=2000),
+            config=self._config(
+                EXTRACT_PROMPT, Extraction, max_tokens=2000, thinking=types.ThinkingLevel.MINIMAL
+            ),
         )
-        self._count(response)
+        self._count(self.fast_model, response)
         return _parsed(response)
 
-    def _config(self, system: str, schema: type[BaseModel], max_tokens: int):
+    def _config(
+        self, system: str, schema: type[BaseModel], max_tokens: int, thinking: types.ThinkingLevel
+    ):
         return types.GenerateContentConfig(
             system_instruction=system,
             response_mime_type="application/json",
             response_schema=schema,
             max_output_tokens=max_tokens,
-            thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.MINIMAL),
+            thinking_config=types.ThinkingConfig(thinking_level=thinking),
         )
 
-    def _count(self, response: types.GenerateContentResponse) -> None:
+    def _count(self, model: str, response: types.GenerateContentResponse) -> None:
         meta = response.usage_metadata
         if meta is None:
             return
-        self.usage.input_tokens += meta.prompt_token_count or 0
         # Thinking tokens are billed as output.
-        self.usage.output_tokens += (meta.candidates_token_count or 0) + (
-            meta.thoughts_token_count or 0
-        )
+        output = (meta.candidates_token_count or 0) + (meta.thoughts_token_count or 0)
+        self.usage.add(model, meta.prompt_token_count or 0, output)

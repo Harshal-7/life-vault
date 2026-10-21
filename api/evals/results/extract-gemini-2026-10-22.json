@@ -1,0 +1,445 @@
+{
+  "provider": "gemini",
+  "models": [
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash-lite"
+  ],
+  "date": "2026-10-22",
+  "fields_right": 57,
+  "fields_total": 58,
+  "per_field": {
+    "doc_type": [
+      11,
+      12
+    ],
+    "vendor": [
+      12,
+      12
+    ],
+    "amount": [
+      10,
+      10
+    ],
+    "doc_date": [
+      12,
+      12
+    ],
+    "expiry_date": [
+      4,
+      4
+    ],
+    "due_date": [
+      4,
+      4
+    ],
+    "reference": [
+      4,
+      4
+    ]
+  },
+  "boxes": [
+    46,
+    46
+  ],
+  "usage": {
+    "gemini-3.5-flash-lite": [
+      14456,
+      6623
+    ]
+  },
+  "cost_usd": null,
+  "cases": [
+    {
+      "id": "brightgrid-bill",
+      "kind": "pdf",
+      "seconds": 1.7,
+      "scores": {
+        "doc_type": true,
+        "vendor": true,
+        "amount": true,
+        "doc_date": true,
+        "due_date": true,
+        "reference": true
+      },
+      "want": {
+        "doc_type": "bill",
+        "vendor": "BrightGrid",
+        "amount": 2340.5,
+        "doc_date": "2026-10-01",
+        "due_date": "2026-10-25",
+        "reference": "4821"
+      },
+      "got": {
+        "doc_type": "bill",
+        "vendor": "BrightGrid Power Ltd",
+        "amount": 2340.5,
+        "doc_date": "2026-10-01",
+        "expiry_date": null,
+        "due_date": "2026-10-25",
+        "reference": "1100 4821"
+      },
+      "boxes": "5/5",
+      "boxed": 5,
+      "found": 5,
+      "leaked_ids": [],
+      "title": "BrightGrid electricity bill"
+    },
+    {
+      "id": "skyfibre-bill",
+      "kind": "pdf",
+      "seconds": 1.5,
+      "scores": {
+        "doc_type": true,
+        "vendor": true,
+        "amount": true,
+        "doc_date": true,
+        "due_date": true,
+        "reference": true
+      },
+      "want": {
+        "doc_type": "bill",
+        "vendor": "SkyFibre",
+        "amount": 1180.0,
+        "doc_date": "2026-09-28",
+        "due_date": "2026-10-12",
+        "reference": "7710"
+      },
+      "got": {
+        "doc_type": "bill",
+        "vendor": "SkyFibre Broadband",
+        "amount": 1180.0,
+        "doc_date": "2026-09-28",
+        "expiry_date": null,
+        "due_date": "2026-10-12",
+        "reference": "5520007710"
+      },
+      "boxes": "5/5",
+      "boxed": 5,
+      "found": 5,
+      "leaked_ids": [],
+      "title": "SkyFibre internet bill"
+    },
+    {
+      "id": "coolwave-warranty",
+      "kind": "pdf",
+      "seconds": 1.5,
+      "scores": {
+        "doc_type": true,
+        "vendor": true,
+        "doc_date": true,
+        "expiry_date": true
+      },
+      "want": {
+        "doc_type": "warranty",
+        "vendor": "Coolwave",
+        "doc_date": "2025-03-02",
+        "expiry_date": "2027-03-02"
+      },
+      "got": {
+        "doc_type": "warranty",
+        "vendor": "Coolwave Appliances",
+        "amount": 38990.0,
+        "doc_date": "2025-03-02",
+        "expiry_date": "2027-03-02",
+        "due_date": null,
+        "reference": "CW340-88213"
+      },
+      "boxes": "3/3",
+      "boxed": 3,
+      "found": 3,
+      "leaked_ids": [],
+      "title": "Coolwave FrostFree refrigerator warranty"
+    },
+    {
+      "id": "suraksha-insurance",
+      "kind": "pdf",
+      "seconds": 1.5,
+      "scores": {
+        "doc_type": true,
+        "vendor": true,
+        "amount": true,
+        "doc_date": true,
+        "expiry_date": true,
+        "reference": true
+      },
+      "want": {
+        "doc_type": "insurance",
+        "vendor": "Suraksha",
+        "amount": 18450,
+        "doc_date": "2026-04-15",
+        "expiry_date": "2027-04-14",
+        "reference": "9214"
+      },
+      "got": {
+        "doc_type": "insurance",
+        "vendor": "Suraksha Health Insurance Co.",
+        "amount": 18450.0,
+        "doc_date": "2026-04-15",
+        "expiry_date": "2027-04-14",
+        "due_date": null,
+        "reference": "SHI/2026/889214"
+      },
+      "boxes": "5/5",
+      "boxed": 5,
+      "found": 5,
+      "leaked_ids": [],
+      "title": "Suraksha Health Insurance Policy"
+    },
+    {
+      "id": "rent-agreement",
+      "kind": "pdf",
+      "seconds": 1.4,
+      "scores": {
+        "doc_type": true,
+        "vendor": true,
+        "amount": true,
+        "doc_date": true,
+        "expiry_date": true
+      },
+      "want": {
+        "doc_type": "rent",
+        "vendor": "Meera Iyer",
+        "amount": 24000,
+        "doc_date": "2026-06-01",
+        "expiry_date": "2027-04-30"
+      },
+      "got": {
+        "doc_type": "rent",
+        "vendor": "Meera Iyer",
+        "amount": 24000.0,
+        "doc_date": "2026-06-01",
+        "expiry_date": "2027-04-30",
+        "due_date": null,
+        "reference": null
+      },
+      "boxes": "4/4",
+      "boxed": 4,
+      "found": 4,
+      "leaked_ids": [],
+      "title": "Lakeview Residency rent agreement"
+    },
+    {
+      "id": "phone-bill",
+      "kind": "pdf",
+      "seconds": 1.4,
+      "scores": {
+        "doc_type": true,
+        "vendor": true,
+        "amount": true,
+        "doc_date": true,
+        "due_date": true
+      },
+      "want": {
+        "doc_type": "bill",
+        "vendor": "Nimbus",
+        "amount": 599.0,
+        "doc_date": "2026-10-15",
+        "due_date": "2026-11-02"
+      },
+      "got": {
+        "doc_type": "bill",
+        "vendor": "Nimbus Mobile",
+        "amount": 599.0,
+        "doc_date": "2026-10-15",
+        "expiry_date": null,
+        "due_date": "2026-11-02",
+        "reference": "98XXXX6642"
+      },
+      "boxes": "4/4",
+      "boxed": 4,
+      "found": 4,
+      "leaked_ids": [],
+      "title": "Nimbus Mobile phone bill"
+    },
+    {
+      "id": "property-tax",
+      "kind": "pdf",
+      "seconds": 1.5,
+      "scores": {
+        "doc_type": true,
+        "vendor": true,
+        "amount": true,
+        "doc_date": true
+      },
+      "want": {
+        "doc_type": "tax",
+        "vendor": "Navanagar",
+        "amount": 8200,
+        "doc_date": "2026-07-31"
+      },
+      "got": {
+        "doc_type": "tax",
+        "vendor": "Navanagar Municipal Corporation",
+        "amount": 8200.0,
+        "doc_date": "2026-07-31",
+        "expiry_date": null,
+        "due_date": null,
+        "reference": "NV-W12-3390"
+      },
+      "boxes": "3/3",
+      "boxed": 3,
+      "found": 3,
+      "leaked_ids": [],
+      "title": "Property Tax Receipt"
+    },
+    {
+      "id": "grocery-receipt",
+      "kind": "photo",
+      "seconds": 22.2,
+      "scores": {
+        "doc_type": true,
+        "vendor": true,
+        "amount": true,
+        "doc_date": true
+      },
+      "want": {
+        "doc_type": "receipt",
+        "vendor": "Annapurna",
+        "amount": 642.0,
+        "doc_date": "2026-10-18"
+      },
+      "got": {
+        "doc_type": "receipt",
+        "vendor": "Annapurna Stores",
+        "amount": 642.0,
+        "doc_date": "2026-10-18",
+        "expiry_date": null,
+        "due_date": null,
+        "reference": null
+      },
+      "boxes": "3/3",
+      "boxed": 3,
+      "found": 3,
+      "leaked_ids": [],
+      "title": "Annapurna Stores grocery receipt"
+    },
+    {
+      "id": "pharmacy-receipt",
+      "kind": "photo",
+      "seconds": 3.4,
+      "scores": {
+        "doc_type": false,
+        "vendor": true,
+        "amount": true,
+        "doc_date": true
+      },
+      "want": {
+        "doc_type": "medical",
+        "vendor": "Sanjeevani",
+        "amount": 385.5,
+        "doc_date": "2026-10-05"
+      },
+      "got": {
+        "doc_type": "receipt",
+        "vendor": "SANJEEVANI PHARMACY",
+        "amount": 385.5,
+        "doc_date": "2026-10-05",
+        "expiry_date": null,
+        "due_date": null,
+        "reference": "7781"
+      },
+      "boxes": "3/3",
+      "boxed": 3,
+      "found": 3,
+      "leaked_ids": [],
+      "title": "Sanjeevani Pharmacy receipt"
+    },
+    {
+      "id": "water-bill-hinglish",
+      "kind": "photo",
+      "seconds": 3.1,
+      "scores": {
+        "doc_type": true,
+        "vendor": true,
+        "amount": true,
+        "doc_date": true,
+        "due_date": true,
+        "reference": true
+      },
+      "want": {
+        "doc_type": "bill",
+        "vendor": "Jal Seva",
+        "amount": 410,
+        "doc_date": "2026-10-20",
+        "due_date": "2026-11-10",
+        "reference": "3381"
+      },
+      "got": {
+        "doc_type": "bill",
+        "vendor": "Jal Seva Nigam",
+        "amount": 410.0,
+        "doc_date": "2026-10-20",
+        "expiry_date": null,
+        "due_date": "2026-11-10",
+        "reference": "7703381"
+      },
+      "boxes": "5/5",
+      "boxed": 5,
+      "found": 5,
+      "leaked_ids": [],
+      "title": "Jal Seva Nigam water bill"
+    },
+    {
+      "id": "spinwell-warranty-card",
+      "kind": "photo",
+      "seconds": 2.9,
+      "scores": {
+        "doc_type": true,
+        "vendor": true,
+        "doc_date": true,
+        "expiry_date": true
+      },
+      "want": {
+        "doc_type": "warranty",
+        "vendor": "Spinwell",
+        "doc_date": "2026-01-14",
+        "expiry_date": "2028-01-13"
+      },
+      "got": {
+        "doc_type": "warranty",
+        "vendor": "SPINWELL",
+        "amount": null,
+        "doc_date": "2026-01-14",
+        "expiry_date": "2028-01-13",
+        "due_date": null,
+        "reference": null
+      },
+      "boxes": "3/3",
+      "boxed": 3,
+      "found": 3,
+      "leaked_ids": [],
+      "title": "Spinwell washing machine warranty"
+    },
+    {
+      "id": "gas-receipt-with-aadhaar",
+      "kind": "photo",
+      "seconds": 3.0,
+      "scores": {
+        "doc_type": true,
+        "vendor": true,
+        "amount": true,
+        "doc_date": true
+      },
+      "want": {
+        "doc_type": "receipt",
+        "vendor": "Agni",
+        "amount": 1105.0,
+        "doc_date": "2026-09-30"
+      },
+      "got": {
+        "doc_type": "receipt",
+        "vendor": "AGNI GAS AGENCY",
+        "amount": 1105.0,
+        "doc_date": "2026-09-30",
+        "expiry_date": null,
+        "due_date": null,
+        "reference": "●●●● 1050"
+      },
+      "boxes": "3/3",
+      "boxed": 3,
+      "found": 3,
+      "leaked_ids": [],
+      "title": "Agni Gas Agency receipt"
+    }
+  ]
+}

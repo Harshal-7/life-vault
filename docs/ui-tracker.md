@@ -40,6 +40,8 @@ option; change any of them later. **Cost to change:** S = under an hour, M = hal
 | 31 | Ask | **Single-question** asks (no follow-up memory) in M2 | Conversation memory | Simpler; follow-ups later | M |
 | 32 | Limits | Per user per day: **50 documents, 100 questions** | No limits | Public site + paid AI calls: no surprise bills | S |
 | 33 | Email | Auth emails sent through **Brevo SMTP (free, 300/day) with a Gmail sender** | Own domain + Brevo, Gmail SMTP | Free and no domain needed; may hit spam until we add a domain | S (swap sender) |
+| 34 | AI | **Gemini is the primary AI** (`LLM_PROVIDER=gemini`), Claude built in as the alternative; on a **free-tier key, dev and prod**. Each document records `read_by` | Claude only; Gemini paid | Free to test. Free-tier data may be used by Google: **don't upload real sensitive documents until prod is paid**. To go paid: turn on billing in the Google project (same key) or `fly secrets set LLM_PROVIDER=claude ANTHROPIC_API_KEY=…` | S (one setting) |
+| 35 | AI | Gemini **Flash-Lite reads photos too** (`gemini-3.5-flash-lite` for both jobs) | `gemini-3.8-flash` for photos | Free tier allows only 20 Flash requests/day; Flash-Lite got every eval photo right and is ~2x faster. Set `GEMINI_SMART_MODEL=gemini-3.8-flash` on a paid key or if real receipts read badly | S |
 
 ## Testing notes
 

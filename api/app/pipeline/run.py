@@ -75,6 +75,25 @@ async def read_document(doc: DocInput, reader: Reader, embedder: Embedder) -> Re
     pages = await asyncio.to_thread(read_file, data, doc.mime_type, get_settings().max_pages)
     lap("pages")
 
+    extraction, fields = await understand(pages, reader, doc.original_filename, lap)
+
+    chunks = chunk_pages(pages)
+    header = embedding_header(extraction.doc_type, extraction.title, fields.columns.get("vendor"))
+    vectors = await embedder.embed([header + c.content for c in chunks], "document")
+    lap("embed")
+
+    image_keys = await _upload_pages(doc, pages)
+    lap("upload")
+
+    read_by = read_by_label(reader, pages)
+    return ReadResult(pages, extraction, fields, chunks, vectors, image_keys, read_by, timings)
+
+
+async def understand(
+    pages: list[Page], reader: Reader, filename: str, lap=lambda name: None
+) -> tuple[Extraction, Fields]:
+    """The AI part, shared with the extraction eval: read photos/scans, mask ID
+    numbers, extract fields and find their boxes. Changes `pages` in place."""
     await _read_images(pages, reader)
     lap("vision")
 
@@ -85,23 +104,19 @@ async def read_document(doc: DocInput, reader: Reader, embedder: Embedder) -> Re
     if not text.strip():
         raise ReadError(UNREADABLE)
 
-    extraction = await reader.extract(text[:MAX_EXTRACT_CHARS], doc.original_filename)
+    extraction = await reader.extract(text[:MAX_EXTRACT_CHARS], filename)
     fields = build_fields(extraction, pages)
     lap("extract")
+    return extraction, fields
 
-    chunks = chunk_pages(pages)
-    header = embedding_header(extraction.doc_type, extraction.title, fields.columns.get("vendor"))
-    vectors = await embedder.embed([header + c.content for c in chunks], "document")
-    lap("embed")
 
-    image_keys = await _upload_pages(doc, pages)
-    lap("upload")
-
+def read_by_label(reader: Reader, pages: list[Page]) -> str:
+    """e.g. "gemini:gemini-3.5-flash-lite,gemini-3.8-flash" (smart model only if a page
+    needed reading as an image)."""
     models = [reader.fast_model] + (
         [reader.smart_model] if any(p.needs_vision for p in pages) else []
     )
-    read_by = f"{reader.provider}:{','.join(models)}"
-    return ReadResult(pages, extraction, fields, chunks, vectors, image_keys, read_by, timings)
+    return f"{reader.provider}:{','.join(models)}"
 
 
 async def _read_images(pages: list[Page], reader: Reader) -> None:

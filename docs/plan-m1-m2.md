@@ -142,6 +142,9 @@ download file → read pages → mask ID numbers → extract fields (+ type, tit
 
 **Flow for each question** (new `app/ask/`):
 ```
+(Router and answer use whichever provider LLM_PROVIDER picks: each reader gains route()
+and stream_answer(), Gemini Flash-Lite / Claude Haiku for routing, the smart model for answers.)
+
 question → ① router (Haiku) → ② field lookup (SQL)  ─┐
                             → ③ hybrid search      ─┼→ ④ answer (Sonnet, streamed) → ⑤ save + done
 ```

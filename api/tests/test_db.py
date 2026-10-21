@@ -97,18 +97,21 @@ async def test_chunks_store_vectors_and_keywords(db, users):
     )
     await db.flush()
 
+    mine = Chunk.document_id == doc.id  # the dev database may hold real chunks too
     nearest = await db.scalar(
-        select(Chunk.content).order_by(Chunk.embedding.op("<=>")(_unit(1))).limit(1)
+        select(Chunk.content).where(mine).order_by(Chunk.embedding.op("<=>")(_unit(1))).limit(1)
     )
     assert nearest == "बिजली बिल amount due"
 
     # 'simple' config: the Hindi word matches exactly as written.
     hit = await db.scalar(
         select(Chunk.page_no).where(
-            Chunk.tsv.op("@@")(func.websearch_to_tsquery("simple", "बिजली"))
+            mine, Chunk.tsv.op("@@")(func.websearch_to_tsquery("simple", "बिजली"))
         )
     )
     assert hit == 2
 
-    stored = await db.scalar(select(Chunk.embedding).where(Chunk.page_no == 1))
+    stored = await db.scalar(
+        select(Chunk.embedding).where(Chunk.document_id == doc.id, Chunk.page_no == 1)
+    )
     assert stored == _unit(0)
