@@ -79,7 +79,7 @@ export function MicButton({ onTranscript, className }: { onTranscript: (text: st
         aria-label={recording ? "Stop and send voice question" : "Ask with your voice"}
         aria-pressed={recording}
         disabled={busy}
-        className={cn("size-10 shrink-0 touch-none rounded-xl select-none", recording && "bg-destructive text-white hover:bg-destructive/90", className)}
+        className={cn("size-10 shrink-0 touch-none rounded-xl select-none", recording && "bg-destructive text-destructive-foreground hover:bg-destructive/90", className)}
         onPointerDown={(e) => {
           lastPointer.current = e.pointerType;
           if (e.pointerType === "mouse") return; // mouse uses click-to-toggle

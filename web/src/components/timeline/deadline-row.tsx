@@ -24,7 +24,7 @@ export function DeadlineRow({ deadline: d }: { deadline: Deadline & { days: numb
     d.days < 0
       ? "bg-destructive/10 text-destructive"
       : d.days <= 7
-        ? "bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300"
+        ? "bg-warning/15 text-warning"
         : d.days <= 31
           ? "bg-accent text-accent-foreground"
           : "bg-muted text-muted-foreground";
@@ -38,7 +38,7 @@ export function DeadlineRow({ deadline: d }: { deadline: Deadline & { days: numb
 
       <Link
         href={`/vault/documents/${d.documentId}?field=${deadlineField(d.kind)}`}
-        className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring"
       >
         <DocTypeTile type={d.docType} className="hidden sm:inline-flex" />
         {/* Phones: the pill goes under the title so the title and document name aren't cut short. */}

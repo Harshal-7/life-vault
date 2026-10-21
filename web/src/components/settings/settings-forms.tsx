@@ -191,14 +191,25 @@ export function ThemePicker() {
   ];
   return (
     <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Theme">
-      {options.map((o) => {
+      {options.map((o, i) => {
         const active = mounted && (theme ?? "system") === o.value;
+        const current = options.findIndex((x) => x.value === (theme ?? "system"));
         return (
           <button
             key={o.value}
             type="button"
             role="radio"
             aria-checked={active}
+            // Radio-group keys: one tab stop, arrows move between the choices.
+            tabIndex={i === (current < 0 ? 0 : current) ? 0 : -1}
+            onKeyDown={(e) => {
+              const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+              if (!step) return;
+              e.preventDefault();
+              const next = options[(i + step + options.length) % options.length];
+              setTheme(next.value);
+              (e.currentTarget.parentElement?.children[options.indexOf(next)] as HTMLElement | undefined)?.focus();
+            }}
             onClick={() => setTheme(o.value)}
             className={cn(
               "flex flex-col items-center gap-1.5 rounded-xl border p-3 text-sm transition-colors",
@@ -235,7 +246,7 @@ export function DeleteAccount({ demo }: { demo: boolean }) {
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
             disabled={typed !== "DELETE"}
-            className="bg-destructive text-white hover:bg-destructive/90"
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={() =>
               // TODO(api): DELETE /me (removes storage files, rows and the auth user).
               toast(demo ? "Demo mode: nothing was deleted" : "Account deletion isn't connected yet", {

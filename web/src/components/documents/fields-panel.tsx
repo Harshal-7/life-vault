@@ -1,6 +1,6 @@
 "use client";
 
-import { BellRing, CircleAlert, Crosshair, Loader2, Pencil, ShieldCheck } from "lucide-react";
+import { BellRing, CircleAlert, Eye, Loader2, Pencil, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { saveFields } from "@/lib/data/actions";
 import type { Deadline, DocFields, DocumentDetail, FieldKey } from "@/lib/data/types";
 import { deadlineLabel } from "@/lib/doc-meta";
@@ -110,11 +111,11 @@ export function FieldsPanel({
       {reviewing && (
         <div className="rounded-xl border border-status-review/30 bg-status-review/5 p-4">
           <p className="flex items-center gap-2 font-medium">
-            <CircleAlert className="size-4 text-status-review" /> Check these details
+            <CircleAlert className="size-4 text-status-review" /> Please check these details
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             We read this document automatically. Fix anything that&apos;s wrong, then confirm. Fields marked{" "}
-            <span className="font-medium text-amber-700 dark:text-amber-400">check</span> are the ones we&apos;re least sure about.
+            <span className="font-medium text-warning">Not sure</span> are the ones we&apos;re least confident about.
           </p>
         </div>
       )}
@@ -146,7 +147,7 @@ export function FieldsPanel({
                     <Label htmlFor={id}>{fieldLabel(key, doc.docType)}</Label>
                     <div className="flex items-center gap-2">
                       {unsure(key) && (
-                        <span className="text-xs font-medium text-amber-700 dark:text-amber-400">check</span>
+                        <span className="text-xs font-medium text-warning">Not sure</span>
                       )}
                       {doc.fieldBoxes[key] && (
                         <button
@@ -178,7 +179,7 @@ export function FieldsPanel({
                         className={cn(
                           "tabular h-10",
                           key === "amount" && "pl-7",
-                          unsure(key) && "border-amber-500/60 bg-amber-50/50 dark:bg-amber-400/5",
+                          unsure(key) && "border-warning/60 bg-warning/5",
                         )}
                       />
                     </div>
@@ -226,16 +227,21 @@ export function FieldsPanel({
                     {value ?? "Not found"}
                   </dd>
                   {box && value && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn("size-8 shrink-0", activeField === key && "bg-accent text-accent-foreground")}
-                      onClick={() => onShowField(key)}
-                      aria-label={`Show ${fieldLabel(key, doc.docType).toLowerCase()} on the page`}
-                      aria-pressed={activeField === key}
-                    >
-                      <Crosshair />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn("size-8 shrink-0", activeField === key && "bg-accent text-accent-foreground")}
+                          onClick={() => onShowField(key)}
+                          aria-label={`Show ${fieldLabel(key, doc.docType).toLowerCase()} on the page`}
+                          aria-pressed={activeField === key}
+                        >
+                          <Eye />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="left">Show on page</TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
               );
@@ -257,7 +263,7 @@ export function FieldsPanel({
                   <span>
                     {deadlineLabel(d.kind, days)} <span className="text-muted-foreground">{formatDate(d.dueDate)}</span>
                   </span>
-                  <span className={cn("tabular shrink-0 text-xs", days < 0 ? "text-destructive" : days <= 31 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground")}>
+                  <span className={cn("tabular shrink-0 text-xs", days < 0 ? "text-destructive" : days <= 31 ? "text-warning" : "text-muted-foreground")}>
                     {relativeDays(days)}
                   </span>
                 </li>

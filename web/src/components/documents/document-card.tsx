@@ -10,7 +10,7 @@ import { DocTypeTile, StatusBadge } from "./doc-bits";
 
 const toneClass = {
   default: "text-muted-foreground",
-  warn: "text-amber-700 dark:text-amber-400",
+  warn: "text-warning",
   danger: "text-destructive",
 };
 
@@ -57,7 +57,7 @@ export function DocumentCard({ doc, href }: { doc: DocumentSummary; href: string
   return (
     <Link
       href={href}
-      className="group flex flex-col overflow-hidden rounded-xl border bg-card transition-shadow outline-none hover:shadow-md focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="group flex flex-col overflow-hidden rounded-xl border bg-card transition-shadow outline-none hover:shadow-md focus-visible:ring-3 focus-visible:ring-ring"
     >
       <div className="relative aspect-[4/3] overflow-hidden border-b bg-muted/60">
         <Thumbnail doc={doc} />
@@ -66,7 +66,7 @@ export function DocumentCard({ doc, href }: { doc: DocumentSummary; href: string
       <div className="flex gap-3 p-3">
         <DocTypeTile type={doc.docType} className="hidden size-8 sm:inline-flex" />
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 min-h-10 text-sm leading-5 font-medium">{doc.title}</p>
+          <p className="line-clamp-2 min-h-10 text-sm leading-snug font-medium">{doc.title}</p>
           <p className="truncate text-xs text-muted-foreground">{doc.vendor ?? doc.originalFilename}</p>
           {/* The most useful line (amount, due date): allowed to wrap rather than be cut. */}
           {line && <p className={cn("tabular mt-1 line-clamp-2 text-xs font-medium", toneClass[line.tone])}>{line.text}</p>}
@@ -81,7 +81,7 @@ export function DocumentRow({ doc, href }: { doc: DocumentSummary; href: string 
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring"
     >
       <DocTypeTile type={doc.docType} />
       <div className="min-w-0 flex-1">

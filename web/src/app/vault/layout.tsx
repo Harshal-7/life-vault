@@ -16,6 +16,13 @@ import { features } from "@/lib/features";
 export default function VaultLayout({ children }: LayoutProps<"/vault">) {
   return (
     <AskCommandProvider>
+      {/* Keyboard users can jump past the navigation. */}
+      <a
+        href="#main"
+        className="sr-only z-50 rounded-lg bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+      >
+        Skip to content
+      </a>
       <div className="flex min-h-dvh w-full">
         <Sidebar
           footer={

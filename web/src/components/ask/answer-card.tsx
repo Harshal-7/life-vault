@@ -197,7 +197,7 @@ function SourceCard({ citation: c, n }: { citation: Citation; n: number }) {
   return (
     <Link
       href={citationHref(c)}
-      className="flex gap-3 rounded-xl border p-2 transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="flex gap-3 rounded-xl border p-2 transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring"
     >
       <span className="relative h-16 w-12 shrink-0 overflow-hidden rounded-md border bg-white">
         {c.thumbnailUrl ? (
@@ -206,7 +206,7 @@ function SourceCard({ citation: c, n }: { citation: Citation; n: number }) {
             {c.box && (
               <span
                 aria-hidden
-                className="absolute bg-amber-400/60"
+                className="absolute bg-highlight ring-1 ring-warning"
                 style={{ left: `${c.box.x}%`, top: `${c.box.y}%`, width: `${c.box.w}%`, height: `${Math.max(c.box.h, 2)}%` }}
               />
             )}

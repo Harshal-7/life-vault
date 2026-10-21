@@ -36,7 +36,7 @@ export function UserMenu({ email, demo, signOut, variant = "compact" }: Props) {
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "flex items-center gap-2 rounded-lg text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+          "flex items-center gap-2 rounded-lg text-left outline-none focus-visible:ring-3 focus-visible:ring-ring",
           variant === "full" ? "w-full p-2 hover:bg-sidebar-accent" : "p-0.5",
         )}
         aria-label="Account menu"

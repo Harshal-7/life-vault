@@ -89,7 +89,7 @@ async function Dashboard() {
               <li key={d.id}>
                 <Link
                   href={`/vault/documents/${d.id}`}
-                  className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-muted"
+                  className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring"
                 >
                   <DocTypeTile type={d.docType} />
                   <span className="min-w-0 flex-1">
@@ -101,7 +101,7 @@ async function Dashboard() {
                         </>
                       ) : (
                         <>
-                          <CircleAlert className="size-3.5 text-status-review" /> Check the details we found
+                          <CircleAlert className="size-3.5 text-status-review" /> Please check the details
                         </>
                       )}
                     </span>

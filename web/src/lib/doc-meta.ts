@@ -88,7 +88,7 @@ export const DOC_TYPE_META: Record<DocType, DocTypeMeta> = {
 export const STATUS_META: Record<DocStatus, { label: string; dot: string; text: string }> = {
   uploaded: { label: "Uploading", dot: "bg-status-processing", text: "text-status-processing" },
   processing: { label: "Reading…", dot: "bg-status-processing", text: "text-status-processing" },
-  needs_review: { label: "Needs review", dot: "bg-status-review", text: "text-status-review" },
+  needs_review: { label: "Check details", dot: "bg-status-review", text: "text-status-review" },
   ready: { label: "Ready", dot: "bg-status-ready", text: "text-status-ready" },
   failed: { label: "Couldn't read", dot: "bg-status-failed", text: "text-status-failed" },
 };

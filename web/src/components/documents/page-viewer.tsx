@@ -77,7 +77,7 @@ export function PageViewer({
           swipeStart.current = null;
           if (Math.abs(dx) > 60) go(dx < 0 ? 1 : -1);
         }}
-        className="max-h-[62dvh] overflow-auto p-3 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:max-h-[calc(100dvh-13rem)] md:p-4"
+        className="max-h-[62dvh] overflow-auto p-3 outline-none focus-visible:ring-3 focus-visible:ring-ring md:max-h-[calc(100dvh-13rem)] md:p-4"
       >
         <div
           className="relative mx-auto bg-white shadow-sm ring-1 ring-black/5 transition-[width] duration-200"
@@ -93,11 +93,12 @@ export function PageViewer({
             className="h-auto w-full select-none"
             draggable={false}
           />
+          {shownHighlight && <p className="sr-only">A passage is highlighted on this page.</p>}
           {shownHighlight && (
             <div
               ref={mark}
               aria-hidden
-              className="pointer-events-none absolute animate-in rounded-[3px] bg-highlight ring-2 ring-amber-500 ring-offset-1 ring-offset-white duration-500 fade-in zoom-in-95"
+              className="pointer-events-none absolute animate-in rounded-[3px] bg-highlight ring-2 ring-warning ring-offset-1 ring-offset-white duration-500 fade-in zoom-in-95"
               style={{
                 left: `${shownHighlight.x}%`,
                 top: `${shownHighlight.y}%`,
