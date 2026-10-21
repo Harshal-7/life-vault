@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.queue import close_pool
-from app.routes import documents, me
+from app.routes import ask, documents, me
 
 settings = get_settings()
 
@@ -19,6 +19,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="Life Vault API", version="0.1.0", lifespan=lifespan)
 app.include_router(me.router)
 app.include_router(documents.router)
+app.include_router(ask.router)
 
 # Only the web app's origins may call the API from a browser.
 app.add_middleware(

@@ -14,7 +14,8 @@ so the worst a malicious PDF can do is produce wrong fields.
 
 import base64
 import logging
-from typing import Literal, Protocol
+from collections.abc import AsyncIterator
+from typing import Literal, Protocol, TypeVar
 
 from anthropic import AsyncAnthropic
 from pydantic import BaseModel, Field
@@ -22,6 +23,7 @@ from pydantic import BaseModel, Field
 from app.config import get_settings
 
 log = logging.getLogger(__name__)
+T = TypeVar("T", bound=BaseModel)
 
 DocType = Literal[
     "bill", "receipt", "warranty", "insurance", "rent", "medical", "tax", "id", "manual", "other"
@@ -97,6 +99,10 @@ class Reader(Protocol):
 
     async def transcribe(self, image_jpeg: bytes) -> Transcription: ...
     async def extract(self, text: str, filename: str) -> Extraction: ...
+
+    # Ask (M2): a small structured answer (the router), and a streamed text answer.
+    async def structured(self, system: str, prompt: str, schema: type[T]) -> T: ...
+    def stream_text(self, system: str, prompt: str) -> AsyncIterator[str]: ...
 
 
 # --- Prompts ---
@@ -226,6 +232,33 @@ class ClaudeReader:
         )
         self.usage.add(msg.model, msg.usage.input_tokens, msg.usage.output_tokens)
         return msg.parsed_output
+
+    async def structured(self, system: str, prompt: str, schema: type[T]) -> T:
+        """Fast model, schema-checked reply (used by Ask's router)."""
+        msg = await self.client.messages.parse(
+            model=self.fast_model,
+            max_tokens=1000,
+            system=system,
+            messages=[{"role": "user", "content": prompt}],
+            output_format=schema,
+            output_config={"effort": "low"},
+        )
+        self.usage.add(msg.model, msg.usage.input_tokens, msg.usage.output_tokens)
+        return msg.parsed_output
+
+    async def stream_text(self, system: str, prompt: str) -> AsyncIterator[str]:
+        """Smart model, answer streamed as it's written."""
+        async with self.client.messages.stream(
+            model=self.smart_model,
+            max_tokens=1000,
+            system=system,
+            messages=[{"role": "user", "content": prompt}],
+            output_config={"effort": "low"},  # short grounded answers don't need deep thought
+        ) as stream:
+            async for text in stream.text_stream:
+                yield text
+            final = await stream.get_final_message()
+        self.usage.add(final.model, final.usage.input_tokens, final.usage.output_tokens)
 
 
 # --- Picking a provider ---

@@ -10,6 +10,9 @@ Differences worth knowing:
   time (and money on a paid key). Flash-Lite allows MINIMAL; Flash's lowest is LOW.
 """
 
+from collections.abc import AsyncIterator
+from typing import TypeVar
+
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
@@ -23,6 +26,8 @@ from app.providers.llm import (
     Transcription,
     Usage,
 )
+
+T = TypeVar("T", bound=BaseModel)
 
 # Retry rate limits and Google-side hiccups: 2 s, 4 s, 8 s, 16 s.
 RETRY = types.HttpRetryOptions(
@@ -109,6 +114,36 @@ class GeminiReader:
         )
         self._count(self.fast_model, response)
         return _parsed(response)
+
+    async def structured(self, system: str, prompt: str, schema: type[T]) -> T:
+        """Fast model, schema-checked reply (used by Ask's router)."""
+        response = await self.client.aio.models.generate_content(
+            model=self.fast_model,
+            contents=prompt,
+            config=self._config(
+                system, schema, max_tokens=1000, thinking=types.ThinkingLevel.MINIMAL
+            ),
+        )
+        self._count(self.fast_model, response)
+        return _parsed(response)
+
+    async def stream_text(self, system: str, prompt: str) -> AsyncIterator[str]:
+        """Smart model, answer streamed as it's written."""
+        last = None
+        async for chunk in await self.client.aio.models.generate_content_stream(
+            model=self.smart_model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                max_output_tokens=1000,
+                thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW),
+            ),
+        ):
+            last = chunk
+            if chunk.text:
+                yield chunk.text
+        if last is not None:
+            self._count(self.smart_model, last)  # the final chunk carries the token counts
 
     def _config(
         self, system: str, schema: type[BaseModel], max_tokens: int, thinking: types.ThinkingLevel

@@ -31,6 +31,8 @@ DOCUMENT_SOURCES = ("upload", "camera", "email")
 DOCUMENT_STATUSES = ("uploaded", "processing", "needs_review", "ready", "failed")
 # How a page's text was read: straight from the PDF, or by Claude looking at an image.
 TEXT_SOURCES = ("pdf_text", "vision")
+ASK_ROUTES = ("field_lookup", "content_search", "both")
+FEEDBACK = ("up", "down")
 EMBEDDING_DIMS = 1024  # voyage-3.5 default
 
 
@@ -198,3 +200,30 @@ class Chunk(Base):
     tsv: Mapped[str] = mapped_column(
         TSVECTOR, Computed("to_tsvector('simple', content)", persisted=True)
     )
+
+
+class Ask(Base):
+    """One question and what we answered: shown as "recent questions", rated with
+    thumbs up/down, and timed per stage so we can measure speed."""
+
+    __tablename__ = "asks"
+    __table_args__ = (
+        CheckConstraint(_in("route", ASK_ROUTES), name="asks_route_check"),
+        CheckConstraint(
+            f"feedback IS NULL OR {_in('feedback', FEEDBACK)}", name="asks_feedback_check"
+        ),
+        Index("ix_asks_user_created", "user_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    question: Mapped[str] = mapped_column(Text)
+    route: Mapped[str] = mapped_column(String(16))
+    fact: Mapped[dict | None] = mapped_column(JSONB)  # {"label","value","detail"}
+    citations: Mapped[list] = mapped_column(JSONB, server_default="[]")
+    answer: Mapped[str] = mapped_column(Text, server_default="")
+    not_found: Mapped[bool] = mapped_column(server_default="false")
+    feedback: Mapped[str | None] = mapped_column(String(8))
+    provider: Mapped[str | None] = mapped_column(String(128))  # e.g. "gemini:<models>"
+    timings: Mapped[dict] = mapped_column(JSONB, server_default="{}")  # seconds per stage
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
