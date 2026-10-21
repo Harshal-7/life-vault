@@ -11,25 +11,20 @@ import { Input } from "@/components/ui/input";
 import { DOC_TYPES, type DocType, type DocumentSummary } from "@/lib/data/types";
 import { DOC_TYPE_META } from "@/lib/doc-meta";
 import { cn } from "@/lib/utils";
+import { type LibraryLayout, VIEW_COOKIE } from "@/lib/library-view";
 
 import { DocumentCard, DocumentRow } from "./document-card";
 
-type View = "grid" | "list";
-const VIEW_KEY = "lv.library.view";
+type View = LibraryLayout;
 
-// Remember grid/list per browser. Reads are wrapped: storage can be blocked.
+// Remember grid/list per browser in a cookie, so the server renders the right one
+// (no grid-then-list jump on load).
 const viewStore = {
   get(): View {
-    try {
-      return localStorage.getItem(VIEW_KEY) === "list" ? "list" : "grid";
-    } catch {
-      return "grid";
-    }
+    return document.cookie.split("; ").includes(`${VIEW_COOKIE}=list`) ? "list" : "grid";
   },
   set(view: View) {
-    try {
-      localStorage.setItem(VIEW_KEY, view);
-    } catch {}
+    document.cookie = `${VIEW_COOKIE}=${view}; path=/vault; max-age=31536000; samesite=lax`;
     window.dispatchEvent(new Event("lv-view"));
   },
   subscribe(cb: () => void) {
@@ -42,16 +37,18 @@ export function LibraryView({
   docs,
   counts,
   total,
+  initialView,
 }: {
   docs: DocumentSummary[];
   counts: Partial<Record<DocType, number>>;
   total: number;
+  initialView: View;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
-  const view = useSyncExternalStore(viewStore.subscribe, viewStore.get, () => "grid" as View);
+  const view = useSyncExternalStore(viewStore.subscribe, viewStore.get, () => initialView);
 
   const activeType = (params.get("type") as DocType | null) ?? "all";
   const [query, setQuery] = useState(params.get("q") ?? "");

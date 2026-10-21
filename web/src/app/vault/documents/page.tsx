@@ -1,5 +1,6 @@
 import { Upload } from "lucide-react";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -10,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser } from "@/lib/auth";
 import { listDocuments } from "@/lib/data";
-import { countByType } from "@/lib/data/search";
+import { countByType, filterDocuments } from "@/lib/data/search";
 import { DOC_TYPES, type DocType } from "@/lib/data/types";
+import { VIEW_COOKIE } from "@/lib/library-view";
 
 export const metadata: Metadata = { title: "Documents" };
 
@@ -42,15 +44,17 @@ async function Library({ searchParams }: { searchParams: PageProps<"/vault/docum
   const q = typeof sp.q === "string" ? sp.q : undefined;
   const type = typeof sp.type === "string" && (DOC_TYPES as readonly string[]).includes(sp.type) ? (sp.type as DocType) : "all";
 
+  // One fetch: the filter runs here, and also matches company and tags.
   const all = await listDocuments();
-  const docs = await listDocuments({ q, type });
+  const docs = filterDocuments(all, { q, type });
+  const view = (await cookies()).get(VIEW_COOKIE)?.value === "list" ? "list" : "grid";
 
   const processing = all.some((d) => d.status === "processing" || d.status === "uploaded");
 
   return (
     <>
       <AutoRefresh active={processing} />
-      <LibraryView docs={docs} counts={countByType(all)} total={all.length} />
+      <LibraryView docs={docs} counts={countByType(all)} total={all.length} initialView={view} />
     </>
   );
 }

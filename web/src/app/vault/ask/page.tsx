@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser } from "@/lib/auth";
 import { listAskHistory } from "@/lib/data";
 import { features } from "@/lib/features";
+import { suggestedQuestions } from "@/lib/suggestions";
 
 export const metadata: Metadata = { title: "Ask" };
 
@@ -17,16 +18,24 @@ export default function AskPage() {
     <PageContainer className="max-w-3xl xl:max-w-5xl">
       <PageHeader title="Ask" description="Answers come only from your documents, with the source to prove it." />
       <Suspense fallback={<Skeleton className="h-14 w-full rounded-2xl" />}>
-        <AskExperience
-          voice={features().voice}
-          recent={
-            <Suspense fallback={null}>
-              <RecentQuestions />
-            </Suspense>
-          }
-        />
+        <AskWithSuggestions />
       </Suspense>
     </PageContainer>
+  );
+}
+
+async function AskWithSuggestions() {
+  await getCurrentUser();
+  return (
+    <AskExperience
+      voice={features().voice}
+      suggestions={await suggestedQuestions(6)}
+      recent={
+        <Suspense fallback={null}>
+          <RecentQuestions />
+        </Suspense>
+      }
+    />
   );
 }
 

@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 
 import { getCurrentUser } from "@/lib/auth";
 import { isDemoMode } from "@/lib/demo";
+import { suggestedQuestions } from "@/lib/suggestions";
 
 import * as api from "./api-source";
+import { listDocuments } from "./index";
 import * as mock from "./mock/store";
-import type { DocFields, DocType, Settings, UploadRequest, UploadResult } from "./types";
+import type { DocFields, DocType, DocumentSummary, Settings, UploadRequest, UploadResult } from "./types";
 
 /**
  * Every change the UI makes. Each action re-checks who's signed in (never trust the
@@ -101,4 +103,23 @@ export async function saveSettings(patch: Partial<Pick<Settings, "allowedSenders
   const settings = mock.updateSettings(patch);
   revalidatePath("/vault/settings");
   return settings;
+}
+
+/** Documents matching what's typed in ⌘K (title or file name), for jumping straight to one. */
+export async function findDocuments(query: string): Promise<Pick<DocumentSummary, "id" | "title" | "vendor" | "docType">[]> {
+  await getCurrentUser();
+  const q = query.trim();
+  if (q.length < 2) return [];
+  try {
+    const docs = await listDocuments({ q });
+    return docs.slice(0, 5).map(({ id, title, vendor, docType }) => ({ id, title, vendor, docType }));
+  } catch {
+    return []; // search is a convenience; asking still works
+  }
+}
+
+/** Question suggestions for ⌘K, loaded when it first opens (the layout stays static). */
+export async function loadSuggestions(): Promise<string[]> {
+  await getCurrentUser();
+  return suggestedQuestions(4);
 }

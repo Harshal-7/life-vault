@@ -8,12 +8,14 @@ import { EmptyState, PageContainer } from "@/components/app/page";
 import { DocTypeTile } from "@/components/documents/doc-bits";
 import { DocumentCard } from "@/components/documents/document-card";
 import { HomeAsk } from "@/components/home/home-ask";
+import { SuggestionChips } from "@/components/home/suggestion-chips";
 import { DeadlineRow } from "@/components/timeline/deadline-row";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser } from "@/lib/auth";
 import { listDeadlines, listDocuments } from "@/lib/data";
 import { features } from "@/lib/features";
+import { suggestedQuestions } from "@/lib/suggestions";
 import { greeting } from "@/lib/format";
 import { groupDeadlines } from "@/lib/timeline";
 
@@ -24,13 +26,25 @@ export default function HomePage() {
         <Suspense fallback={<Skeleton className="h-9 w-64" />}>
           <Greeting />
         </Suspense>
-        <HomeAsk voice={features().voice} />
+        <HomeAsk
+          voice={features().voice}
+          suggestions={
+            <Suspense fallback={<div className="h-8" />}>
+              <HomeSuggestions />
+            </Suspense>
+          }
+        />
       </section>
       <Suspense fallback={<DashboardSkeleton />}>
         <Dashboard />
       </Suspense>
     </PageContainer>
   );
+}
+
+async function HomeSuggestions() {
+  await getCurrentUser();
+  return <SuggestionChips questions={await suggestedQuestions(3)} />;
 }
 
 async function Greeting() {

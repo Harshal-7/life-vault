@@ -6,7 +6,7 @@ import { BottomNav } from "@/components/app/bottom-nav";
 import { OfflineBanner } from "@/components/app/offline-banner";
 import { Sidebar } from "@/components/app/sidebar";
 import { TopBar } from "@/components/app/top-bar";
-import { UploadSheet } from "@/components/upload/upload-sheet";
+import { LazyUploadSheet } from "@/components/upload/lazy-upload-sheet";
 import { features } from "@/lib/features";
 
 /**
@@ -53,7 +53,7 @@ export default function VaultLayout({ children }: LayoutProps<"/vault">) {
       </div>
       {/* Opens on ?upload=1 from any page. Reads the URL, so it needs a boundary. */}
       <Suspense fallback={null}>
-        <UploadSheet inbound={features().inbound} />
+        <LazyUploadSheet inbound={features().inbound} />
       </Suspense>
     </AskCommandProvider>
   );

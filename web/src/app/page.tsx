@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { PreviewDate } from "@/components/home/preview-date";
 import { PRIVACY } from "@/lib/privacy-copy";
 
 const FEATURES: { icon: typeof Camera; title: string; body: string; soon?: boolean }[] = [
@@ -135,11 +136,11 @@ function AnswerPreview() {
         <div className="space-y-4 p-5">
           <div className="rounded-xl bg-accent/60 px-4 py-3">
             <p className="text-xs font-medium tracking-wide text-accent-foreground/80 uppercase">Warranty ends</p>
-            <p className="tabular text-3xl font-semibold tracking-tight text-accent-foreground">14 Mar 2027</p>
+            <p className="tabular text-3xl font-semibold tracking-tight text-accent-foreground"><PreviewDate fallback="14 Mar 2027" /></p>
             <p className="text-sm text-accent-foreground/80">in 5 months</p>
           </div>
           <p className="text-sm leading-relaxed">
-            Your Coolwave fridge is covered until 14 Mar 2027. The compressor and cooling parts are included; glass shelves
+            Your Coolwave fridge is covered until <PreviewDate fallback="14 Mar 2027" />. The compressor and cooling parts are included; glass shelves
             aren&apos;t.
           </p>
           <div className="flex gap-3 rounded-xl border p-2">
@@ -154,7 +155,7 @@ function AnswerPreview() {
             </div>
             <div className="min-w-0 py-0.5">
               <p className="truncate text-sm font-medium">Coolwave fridge warranty</p>
-              <p className="text-xs text-muted-foreground">Warranty valid until 14 Mar 2027</p>
+              <p className="text-xs text-muted-foreground">Warranty valid until <PreviewDate fallback="14 Mar 2027" /></p>
               <p className="mt-0.5 text-[11px] text-muted-foreground">Page 1</p>
             </div>
           </div>

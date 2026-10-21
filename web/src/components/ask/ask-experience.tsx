@@ -1,22 +1,24 @@
 "use client";
 
 import { ArrowRight } from "lucide-react";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 import { useAsk } from "@/hooks/use-ask";
-import { STARTER_QUESTIONS } from "@/lib/starter-questions";
 import { cn } from "@/lib/utils";
 
 import { AnswerCard } from "./answer-card";
 import { AskBar } from "./ask-bar";
-import { MicButton } from "./mic-button";
+
+// Voice code loads only when the mic is shown.
+const MicButton = dynamic(() => import("./mic-button").then((m) => m.MicButton), { ssr: false });
 
 /**
  * The Ask page: question box on top, answers below (newest first).
  * A question in the URL (?q=…, e.g. from Home or ⌘K) is asked on arrival.
  */
-export function AskExperience({ recent, voice }: { recent: React.ReactNode; voice: boolean }) {
+export function AskExperience({ recent, voice, suggestions }: { recent: React.ReactNode; voice: boolean; suggestions: string[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -72,7 +74,7 @@ export function AskExperience({ recent, voice }: { recent: React.ReactNode; voic
           <section>
             <h2 className="mb-3 text-sm font-medium text-muted-foreground">Try asking</h2>
             <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {STARTER_QUESTIONS.map((s) => (
+              {suggestions.map((s) => (
                 <li key={s}>
                   <button
                     type="button"
@@ -100,7 +102,7 @@ export function AskExperience({ recent, voice }: { recent: React.ReactNode; voic
             <section>
               <h2 className="mb-3 text-sm font-medium text-muted-foreground">Try asking</h2>
               <ul className="space-y-1">
-                {STARTER_QUESTIONS.slice(0, 4).map((s) => (
+                {suggestions.slice(0, 4).map((s) => (
                   <li key={s}>
                     <button
                       type="button"

@@ -107,9 +107,18 @@ export function DocumentActions({
               </DropdownMenuRadioGroup>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
-          <DropdownMenuItem disabled>
-            <Download /> Download original
-          </DropdownMenuItem>
+          {doc.fileUrl ? (
+            <DropdownMenuItem asChild>
+              {/* Supabase's ?download= makes the signed link save the file under its name. */}
+              <a href={`${doc.fileUrl}${doc.fileUrl.includes("?") ? "&" : "?"}download=${encodeURIComponent(doc.originalFilename)}`}>
+                <Download /> Download original
+              </a>
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem disabled>
+              <Download /> Download original
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(true)}>
             <Trash2 /> Delete
