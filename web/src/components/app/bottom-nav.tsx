@@ -53,18 +53,24 @@ function BottomNavView({ pathname }: { pathname: string | null }) {
       <div className="mx-auto flex max-w-md items-end px-2">
         {tab(home!)}
         {tab(documents!)}
-        <div className="flex flex-1 justify-center">
-          <Link
-            href="/vault/ask"
-            aria-label="Ask"
-            aria-current={askActive ? "page" : undefined}
+        <Link
+          href="/vault/ask"
+          aria-current={askActive ? "page" : undefined}
+          className={cn(
+            "group flex flex-1 flex-col items-center gap-1 pb-1.5 text-[11px] text-muted-foreground",
+            askActive && "font-medium text-primary",
+          )}
+        >
+          <span
             className={cn(
-              "-mt-5 mb-1.5 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 ring-4 ring-background transition-transform active:scale-95",
+              "-mt-5 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 ring-4 ring-background transition-transform group-active:scale-95",
+              askActive && "ring-primary/25",
             )}
           >
-            <MessageCircleQuestion className="size-6" />
-          </Link>
-        </div>
+            <MessageCircleQuestion className="size-6" strokeWidth={askActive ? 2.3 : 2} />
+          </span>
+          Ask
+        </Link>
         {tab(timeline!)}
         {tab(settings!)}
       </div>

@@ -19,7 +19,7 @@ import { groupDeadlines } from "@/lib/timeline";
 
 export default function HomePage() {
   return (
-    <PageContainer className="space-y-10">
+    <PageContainer className="max-w-4xl space-y-10">
       <section className="space-y-5 pt-2 md:pt-6">
         <Suspense fallback={<Skeleton className="h-9 w-64" />}>
           <Greeting />

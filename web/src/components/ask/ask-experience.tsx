@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 
 import { useAsk } from "@/hooks/use-ask";
 import { STARTER_QUESTIONS } from "@/lib/starter-questions";
+import { cn } from "@/lib/utils";
 
 import { AnswerCard } from "./answer-card";
 import { AskBar } from "./ask-bar";
@@ -53,7 +54,10 @@ export function AskExperience({ recent, voice }: { recent: React.ReactNode; voic
 
   return (
     <div className="space-y-6">
-      <AskBar onAsk={submit} busy={busy} autoFocus={!q} size="hero" trailing={voice ? <MicButton onTranscript={submit} /> : undefined} />
+      {/* With answers on wide screens, lines up with the answers column. */}
+      <div className={cn(answers.length > 0 && "xl:max-w-[calc(100%-19rem)]")}>
+        <AskBar onAsk={submit} busy={busy} autoFocus={!q} size="hero" trailing={voice ? <MicButton onTranscript={submit} /> : undefined} />
+      </div>
 
       {answers.length === 0 && !q ? (
         <div className="space-y-8">
@@ -77,10 +81,32 @@ export function AskExperience({ recent, voice }: { recent: React.ReactNode; voic
           {recent}
         </div>
       ) : (
-        <div className="space-y-4">
-          {answers.map((a) => (
-            <AnswerCard key={a.id} answer={a} onRetry={submit} />
-          ))}
+        // Wide screens: suggestions and recent questions stay in a side column.
+        <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_17rem] xl:gap-8">
+          <div className="space-y-4">
+            {answers.map((a) => (
+              <AnswerCard key={a.id} answer={a} onRetry={submit} />
+            ))}
+          </div>
+          <aside className="hidden space-y-8 xl:block">
+            <section>
+              <h2 className="mb-3 text-sm font-medium text-muted-foreground">Try asking</h2>
+              <ul className="space-y-1">
+                {STARTER_QUESTIONS.slice(0, 4).map((s) => (
+                  <li key={s}>
+                    <button
+                      type="button"
+                      onClick={() => submit(s)}
+                      className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      {s}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+            {recent}
+          </aside>
         </div>
       )}
     </div>

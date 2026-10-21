@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Ask" };
 
 export default function AskPage() {
   return (
-    <PageContainer className="max-w-3xl">
+    <PageContainer className="max-w-3xl xl:max-w-5xl">
       <PageHeader title="Ask" description="Answers come only from your documents, with the source to prove it." />
       <Suspense fallback={<Skeleton className="h-14 w-full rounded-2xl" />}>
         <AskExperience

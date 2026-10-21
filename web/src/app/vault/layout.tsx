@@ -22,6 +22,11 @@ export default function VaultLayout({ children }: LayoutProps<"/vault">) {
               <AccountMenu variant="full" />
             </Suspense>
           }
+          railFooter={
+            <Suspense fallback={<AccountMenuSkeleton variant="compact" />}>
+              <AccountMenu variant="compact" />
+            </Suspense>
+          }
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar

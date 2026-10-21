@@ -3,7 +3,7 @@
 import { Search, Upload } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useSyncExternalStore } from "react";
 
 import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -61,8 +61,19 @@ function BrandAndAsk({ pathname }: { pathname: string | null }) {
       >
         <Search className="size-4 shrink-0" />
         <span className="truncate">Ask about your documents…</span>
-        <kbd className="ml-auto hidden rounded border bg-background px-1.5 font-mono text-[10px] md:inline">⌘K</kbd>
+        <kbd className="ml-auto hidden rounded border bg-background px-1.5 font-mono text-[10px] md:inline">{useShortcutLabel()}</kbd>
       </button>
     </>
+  );
+}
+
+const noSubscribe = () => () => {};
+
+/** "⌘K" on Apple devices, "Ctrl K" elsewhere (decided in the browser; ⌘K on the server). */
+function useShortcutLabel() {
+  return useSyncExternalStore(
+    noSubscribe,
+    () => (/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K"),
+    () => "⌘K",
   );
 }
