@@ -11,7 +11,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from app.pipeline.mask import mask_ids
-from app.pipeline.read import Box, Page
+from app.pipeline.read import Page
 from app.providers.llm import Extraction, FieldValue
 
 LOW_CONFIDENCE = 0.8  # same threshold the fields panel uses to flag "check this"
@@ -93,9 +93,8 @@ def _norm(text: str) -> str:
 def find_box(fv: FieldValue, pages: list[Page]) -> dict | None:
     """Find where `as_printed` sits on the page and return a % box around it.
 
-    We know each line's box, not each character's, so the box within a line is
-    estimated from the character position. Good enough to draw the eye; exact for
-    values that fill the whole line."""
+    The box within a line is estimated from the character position (`Box.sub`).
+    Good enough to draw the eye; exact for values that fill the whole line."""
     if not fv.as_printed:
         return None
     needle = _norm(fv.as_printed)
@@ -110,13 +109,6 @@ def find_box(fv: FieldValue, pages: list[Page]) -> dict | None:
             if at < 0:
                 continue
             start, end = at / len(hay), (at + len(needle)) / len(hay)
-            b = line.box
-            pad = 0.4  # a little air around the text
-            box = Box(
-                x=max(0.0, b.x + b.w * start - pad),
-                y=max(0.0, b.y - pad / 2),
-                w=min(100.0, b.w * (end - start) + 2 * pad),
-                h=b.h + pad,
-            )
+            box = line.box.sub(start, end, pad=0.4)  # a little air around the text
             return box.as_dict(page.page_no)
     return None

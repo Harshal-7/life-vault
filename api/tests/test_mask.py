@@ -1,4 +1,4 @@
-from app.pipeline.mask import luhn_ok, mask_ids, verhoeff_ok
+from app.pipeline.mask import id_spans, luhn_ok, mask_ids, verhoeff_ok
 
 
 def aadhaar_like(first11: str) -> str:
@@ -34,3 +34,24 @@ def test_leaves_ordinary_numbers_alone():
         "amount 2,34,500.00, date 12/03/2025, GSTIN 27ABCDE1234F1Z5, ref INV2025ABCD1234"
     )
     assert mask_ids(text) == text
+
+
+def test_spans_are_exactly_what_masking_replaces():
+    aadhaar = aadhaar_like("52341234123")
+    text = (
+        f"Aadhaar {aadhaar[:4]} {aadhaar[4:8]} {aadhaar[8:]}, card 4111-1111-1111-1111, "
+        "PAN ABCPE1234F, order 4111111111111112"
+    )
+    spans = id_spans(text)
+    assert [text[a:b] for a, b in spans] == [
+        f"{aadhaar[:4]} {aadhaar[4:8]} {aadhaar[8:]}",
+        "4111-1111-1111-1111",
+        "ABCPE1234F",
+    ]
+    # Masking changes those spans and nothing else.
+    expected = text
+    for start, end in reversed(spans):
+        digits = text[start:end].replace(" ", "").replace("-", "")
+        expected = expected[:start] + f"●●●● {digits[-4:]}" + expected[end:]
+    assert mask_ids(text) == expected
+    assert id_spans("nothing to see, invoice 123456789012") == []

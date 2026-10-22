@@ -21,6 +21,12 @@ _PAN = re.compile(r"\b[A-Z]{3}[ABCFGHJLPT][A-Z]\d{4}[A-Z]\b")
 # Card numbers: 13-19 digits, optionally in groups split by spaces or dashes.
 _CARD = re.compile(r"(?<![\d-])\d(?:[ -]?\d){12,18}(?![\d-])")
 
+# An ID the AI already masked while reading a photo (its prompt asks it to).
+_MASKED = re.compile(DOT + r" ?[0-9A-Za-z]{4}")
+# The longest original a mask can stand for (a 19-digit card in groups of 4) is this
+# many characters longer than the mask itself.
+MAX_HIDDEN = len("4111 1111 1111 1111 111") - len(f"{DOT} 1111")
+
 # Verhoeff tables (multiplication, permutation).
 _D = [
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -67,15 +73,31 @@ def masked(last4: str) -> str:
     return f"{DOT} {last4}"
 
 
+def id_spans(text: str) -> list[tuple[int, int]]:
+    """(start, end) of every ID number in `text`, in order. `mask_ids` replaces
+    exactly these, and the pipeline blurs the same spans on the page image, so the
+    two can never disagree."""
+    spans: list[tuple[int, int]] = []
+    for pattern, ok in ((_AADHAAR, verhoeff_ok), (_CARD, luhn_ok), (_PAN, None)):
+        # Blank out what's already found (same length, so positions hold) so a later
+        # pattern can't match across an earlier one.
+        seen = list(text)
+        for start, end in spans:
+            seen[start:end] = DOT[0] * (end - start)
+        for m in pattern.finditer("".join(seen)):
+            if ok is None or ok(re.sub(r"\D", "", m.group(0))):
+                spans.append(m.span())
+    return sorted(spans)
+
+
+def masked_spans(text: str) -> list[tuple[int, int]]:
+    """(start, end) of ID numbers that are already masked, like "●●●● 4821"."""
+    return [m.span() for m in _MASKED.finditer(text)]
+
+
 def mask_ids(text: str) -> str:
-    def aadhaar(m: re.Match) -> str:
-        digits = "".join(m.groups())
-        return masked(digits[-4:]) if verhoeff_ok(digits) else m.group(0)
-
-    def card(m: re.Match) -> str:
-        digits = re.sub(r"\D", "", m.group(0))
-        return masked(digits[-4:]) if luhn_ok(digits) else m.group(0)
-
-    text = _AADHAAR.sub(aadhaar, text)
-    text = _CARD.sub(card, text)
-    return _PAN.sub(lambda m: masked(m.group(0)[-4:]), text)
+    out, at = [], 0
+    for start, end in id_spans(text):
+        out += [text[at:start], masked(re.sub(r"[ -]", "", text[start:end])[-4:])]
+        at = end
+    return "".join(out) + text[at:]

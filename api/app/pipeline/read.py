@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 
 import pypdfium2 as pdfium
 import pypdfium2.raw as pdfium_c
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageFilter, ImageOps, UnidentifiedImageError
 from pillow_heif import register_heif_opener
 
 register_heif_opener()  # lets Pillow open iPhone HEIC photos
@@ -28,6 +28,9 @@ VISION_LONG_EDGE = 1568  # Claude's sweet spot: bigger images are downscaled any
 # A PDF page is a scan when it has almost no text but a picture covering most of it.
 MIN_TEXT_CHARS = 20
 MIN_IMAGE_COVER = 0.5
+# Blurring ID numbers on page images: boxes are estimates, so blur well past them.
+BLUR_PAD_PX = 16
+BLUR_PIXEL = 16  # pixelate into blocks this big, then blur the blocks
 PDF_MIME = "application/pdf"
 
 # PDFium (the PDF engine inside Chrome) must not be used from two threads at once.
@@ -52,6 +55,17 @@ class Box:
         x1 = max(self.x + self.w, other.x + other.w)
         y1 = max(self.y + self.h, other.y + other.h)
         return Box(x0, y0, x1 - x0, y1 - y0)
+
+    def sub(self, start_frac: float, end_frac: float, pad: float) -> "Box":
+        """The part of a line box from `start_frac` to `end_frac` of its text (0-1),
+        plus `pad` % of air. We know each line's box, not each character's, so this
+        is an estimate from the character position; exact for a whole line."""
+        return Box(
+            x=max(0.0, self.x + self.w * start_frac - pad),
+            y=max(0.0, self.y - pad / 2),
+            w=min(100.0, self.w * (end_frac - start_frac) + 2 * pad),
+            h=self.h + pad,
+        )
 
     def as_dict(self, page_no: int) -> dict:
         return {"page": page_no, **{k: round(getattr(self, k), 2) for k in "xywh"}}
@@ -204,6 +218,31 @@ def _read_photo(data: bytes) -> Page:
         height=viewer.height,
         vision_image=_vision_jpeg(image),
     )
+
+
+# --- Hiding ID numbers ---
+
+
+def blur_regions(webp: bytes, boxes: list[Box]) -> bytes:
+    """Pixelate and blur each % box (plus a generous margin) on a page image, so ID
+    numbers can't be read from the viewer or thumbnail either."""
+    if not boxes:
+        return webp
+    image = Image.open(io.BytesIO(webp)).convert("RGB")
+    for box in boxes:
+        left = max(0, int(box.x / 100 * image.width) - BLUR_PAD_PX)
+        top = max(0, int(box.y / 100 * image.height) - BLUR_PAD_PX)
+        right = min(image.width, int((box.x + box.w) / 100 * image.width) + BLUR_PAD_PX)
+        bottom = min(image.height, int((box.y + box.h) / 100 * image.height) + BLUR_PAD_PX)
+        if right <= left or bottom <= top:
+            continue
+        region = image.crop((left, top, right, bottom))
+        small = (max(1, region.width // BLUR_PIXEL), max(1, region.height // BLUR_PIXEL))
+        region = region.resize(small, Image.Resampling.BOX).resize(
+            region.size, Image.Resampling.NEAREST
+        )
+        image.paste(region.filter(ImageFilter.GaussianBlur(BLUR_PIXEL / 2)), (left, top))
+    return _webp(image)
 
 
 # --- Encoding ---

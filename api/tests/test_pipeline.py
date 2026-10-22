@@ -1,13 +1,18 @@
 """The whole reading pipeline with fake Claude, Voyage and Storage, saved into the
 dev database inside a rolled-back transaction."""
 
+import io
+
 import pytest
+from PIL import Image, ImageDraw, ImageFont, ImageStat
 from sqlalchemy import func, select
 
 from app.db.models import EMBEDDING_DIMS, Chunk, Document, DocumentPage, User
 from app.pipeline import run
-from app.pipeline.read import ReadError
+from app.pipeline.mask import id_spans
+from app.pipeline.read import Box, ReadError, read_file
 from app.providers.llm import Extraction, FieldValue, SeenLine, Transcription
+from evals.cases import AADHAAR_SPACED
 from tests.conftest import needs_db
 from tests.factories import photo_jpeg, text_pdf
 
@@ -136,7 +141,8 @@ async def test_running_twice_replaces_the_first_attempt(db, users, fake_files):
     chunks = await db.scalar(select(func.count()).where(Chunk.document_id == doc.id))
     assert (pages, chunks, doc.page_count) == (3, 3, 3)
     assert doc.read_by == "fake:fast-1"  # typed PDF: text only, no vision
-    assert {p for p in (await db.scalars(select(DocumentPage.text_source))).all()} == {"pdf_text"}
+    sources = select(DocumentPage.text_source).where(DocumentPage.document_id == doc.id)
+    assert set((await db.scalars(sources)).all()) == {"pdf_text"}
 
 
 @needs_db
@@ -145,3 +151,62 @@ async def test_unreadable_photo_is_a_friendly_error(db, users, fake_files):
     doc = await make_doc(db, users[0])
     with pytest.raises(ReadError, match="couldn't read any text"):
         await run.read_document(job(doc), FakeReader(readable=False), FakeEmbedder())
+
+
+def variance(webp: bytes, box) -> float:
+    image = Image.open(io.BytesIO(webp)).convert("L")
+    w, h = image.size
+    crop = (box.x * w / 100, box.y * h / 100, (box.x + box.w) * w / 100, (box.y + box.h) * h / 100)
+    return ImageStat.Stat(image.crop(tuple(map(int, crop)))).var[0]
+
+
+async def test_id_numbers_are_blurred_on_the_page_image():
+    pages = read_file(
+        text_pdf([["Spinwell Appliances", f"Customer Aadhaar: {AADHAAR_SPACED}"]]),
+        "application/pdf",
+        5,
+    )
+    [page] = pages
+    vendor, id_line = page.lines
+    [(start, end)] = id_spans(id_line.text)
+    number = id_line.box.sub(start / len(id_line.text), end / len(id_line.text), 0)
+    before = page.image
+
+    await run.understand(pages, FakeReader(), "receipt.pdf")
+
+    assert AADHAAR_SPACED not in page.text
+    assert page.image != before
+    # The number is smeared flat; the rest of the page is untouched.
+    assert variance(page.image, number) < variance(before, number) / 4
+    assert variance(page.image, vendor.box) == pytest.approx(variance(before, vendor.box), rel=0.1)
+
+
+async def test_ids_the_ai_already_masked_are_blurred_on_photos():
+    # The AI writes "●●●● 1050" (its prompt asks it to), but the photo shows it all.
+    img = Image.new("RGB", (900, 1200), "white")
+    draw, font = ImageDraw.Draw(img), ImageFont.load_default(size=36)
+    label, number = "Customer Aadhaar: ", AADHAAR_SPACED
+    draw.text((60, 600), label + number, fill="black", font=font)
+    out = io.BytesIO()
+    img.save(out, "JPEG")
+
+    def pct(x0, y0, x1, y1):
+        return Box(x0 / 9, y0 / 12, (x1 - x0) / 9, (y1 - y0) / 12)
+
+    line = pct(*draw.textbbox((60, 600), label + number, font=font))
+    digits = pct(
+        60 + draw.textlength(label, font=font),
+        *draw.textbbox((60, 600), label + number, font=font)[1:],
+    )
+
+    class MaskingReader(FakeReader):
+        async def transcribe(self, image_jpeg):
+            seen = SeenLine(
+                text=f"{label}●●●● {number[-4:]}", x=line.x, y=line.y, w=line.w, h=line.h
+            )
+            return Transcription(readable=True, lines=[seen])
+
+    pages = read_file(out.getvalue(), "image/jpeg", 5)
+    before = pages[0].image
+    await run.understand(pages, MaskingReader(), "receipt.jpg")
+    assert variance(pages[0].image, digits) < variance(before, digits) / 4
