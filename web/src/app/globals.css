@@ -169,10 +169,11 @@
    links grow an invisible ::after; absolutely positioned buttons (sheet close) are
    left alone so this doesn't move them. Outside @layer, so it beats utilities. */
 @media (pointer: coarse) {
-  :where([data-slot="button"], .tap):not(.absolute, .fixed) {
+  /* Menu, tooltip and dialog triggers wrap buttons and replace their data-slot. */
+  :where([data-slot="button"], [data-slot$="-trigger"], .tap):not(.absolute, .fixed) {
     position: relative;
   }
-  :where([data-slot="button"], .tap)::after {
+  :where([data-slot="button"], [data-slot$="-trigger"], .tap)::after {
     content: "";
     position: absolute;
     top: 50%;
@@ -183,6 +184,9 @@
   }
   [data-slot="switch"]::after {
     inset: -14px -12px;
+  }
+  [data-slot="input"] {
+    min-height: 44px;
   }
 }
 

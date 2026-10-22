@@ -12,7 +12,7 @@ export function SuggestionChips({ questions }: { questions: string[] }) {
           key={q}
           type="button"
           onClick={() => router.push(`/vault/ask?q=${encodeURIComponent(q)}`)}
-          className="shrink-0 rounded-full border bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="tap shrink-0 rounded-full border bg-card px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           {q}
         </button>

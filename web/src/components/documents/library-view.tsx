@@ -207,7 +207,8 @@ function Chip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors",
+        // Taller on phones: the row scrolls sideways, which would clip an invisible hit area.
+        "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors max-md:h-11",
         active ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-muted",
       )}
     >

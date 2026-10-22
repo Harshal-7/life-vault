@@ -241,3 +241,35 @@ Grouped so each phase is shippable on its own. The effort numbers are rough.
 6. **Small wins: half a day.** Download original, starter questions from your own vault, ⌘K document results, a computed date on the landing card, lighter thumbnails, the grid/list cookie.
 
 After phases 1–3, re-run this same check (same screens, sizes and themes) and update the scores.
+
+---
+
+## Re-check after the polish (2026-10-22)
+
+Same method as above: 13 screens × phone / tablet / desktop × light / dark (78 captures, demo mode), 320px and 1024px spot checks, plus signed-in checks on a dev vault filled with the 12 fictional eval documents (`api/app/scripts/seed_dev.py`). Six commits: `2f4f3d7` … `5a6ac1c`.
+
+**Automated results:** no sideways scroll on any screen (320px included), no console errors, no unnamed buttons or images. On phones every control now has a ≥ 44px tap area, except the "Skip to content" link, which only appears for keyboard users.
+
+| # | Area | Before | After | What changed |
+|---|---|---|---|---|
+| A | Visual design & brand | 8.0 | **8.5** | Warning and destructive tokens, one name per state. Chip, section-header and thumbnail components are still separate (left for later). |
+| B | Light / dark theming | 8.0 | **9.0** | Status colours readable in light mode, white-on-red fixed in dark, form borders at 3:1 |
+| C | Phone layout | 7.0 | **8.5** | One ask box, deadline rows and key lines no longer cut off, review form first with a sticky Confirm, Upload button, safe areas |
+| D | Small phone (320px) | 6.0 | **8.5** | Landing fits, timeline titles readable |
+| E | Tablet | 5.5 | **8.5** | Icon rail from 768 to 1279px, document page stacks until xl, roomier grids |
+| F | Desktop | 7.5 | **8.5** | Home capped, Ask side column, Ctrl K on Windows |
+| G | Navigation & structure | 7.0 | **8.5** | ⌘K finds documents and Enter always asks; labelled Ask button |
+| H | Feedback & states | 6.0 | **8.5** | Stop, friendly errors, no silent failures, upload retry/background, login resend, offline banner, polling stops |
+| I | Touch ergonomics | 5.0 | **9.0** | 44px hit areas on touch screens |
+| J | Accessibility | 5.5 | **8.0** | Focus rings, skip link, announcements, radio keys, Devanagari font. The page highlight's cited text still isn't read out. |
+| K | Copy & trust | 6.0 | **8.5** | Privacy claims now true, no internal jargon, one wording per state |
+| L | Real-mode completeness | 4.5 | **7.5** | Honest "Coming soon" for M3–M5 features; Download works; suggestions from your own documents. The rest arrives with M3–M5. |
+| M | Speed & smoothness | 6.5 | **7.5** | Polling backoff, one library fetch, lazy upload/mic code, no grid/list flicker. Thumbnails are still full-size images. |
+| | **Overall** | **6.5** | **8.4** | |
+
+**Found while testing with real data (fixed):** the Home "Needs your attention" card widened the page with a long title; photo thumbnails showed only the table top; the Reference field claimed "only the last digits are kept" on serial numbers that aren't masked; one answer listed the same page twice as two sources.
+
+**Still open:**
+- ID numbers on stored page images: blurring is being built separately (backend). Until it ships and existing documents are re-read, thumbnails can show a full Aadhaar number (seen on the fictional gas receipt).
+- The local worker crashes when Upstash resets the connection (Fly restarts it in prod; worth a reconnect setting).
+- Duplicate UI pieces (chips, section headers, paper thumbnail) not merged; small thumbnail images not generated.

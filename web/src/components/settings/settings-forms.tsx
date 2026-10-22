@@ -163,7 +163,7 @@ export function ReminderDays({ initial }: { initial: number[] }) {
             aria-pressed={on}
             disabled={pending}
             className={cn(
-              "inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-sm transition-colors",
+              "tap inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-sm transition-colors",
               on ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-muted",
             )}
           >

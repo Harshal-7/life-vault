@@ -66,7 +66,7 @@ export function AskBar({
         aria-label="Your question"
         enterKeyHint="send"
         maxLength={500}
-        className={cn("min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground", hero && "text-base md:text-lg")}
+        className={cn("min-w-0 flex-1 self-stretch bg-transparent outline-none placeholder:text-muted-foreground", hero && "text-base md:text-lg")}
       />
       {trailing}
       {busy && onStop ? (
